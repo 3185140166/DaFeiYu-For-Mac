@@ -287,3 +287,8 @@ The two CrossPet sources retain their original pixel sizes, centered on a shared
 卫衣立绘及衍生图标：**CrossPet / lokicorvus and CrossPet contributors**；角色设计：**上善无形 / ZipZipPipe**。采用 **CC BY-NC-SA 4.0**，须署名、非商业使用、相同方式共享，不适用代码 MIT 许可。素材出处、固定版本、文件校验值和修改说明见 [artwork-src/claude-hoodie/README.md](artwork-src/claude-hoodie/README.md)，原许可及出处也随应用资源打包。
 
 Skin validation / 皮肤验证：构建应用后执行 `bash Tests/run_skin_tests.sh`，验证默认迁移、手动切换保留、素材加载、两种姿态切换、透明画布和扒边比例。
+
+
+### 本机 GitHub 发布配置
+
+可在项目根目录的 `.env.github-publish` 中本地填写 `GITHUB_USERNAME` 和 `GITHUB_PAT`。该文件已被 Git 忽略，文件权限设为仅当前用户可读写。PAT 是敏感凭据，不要发到聊天、截图、日志或仓库；不要将其拼入 Git 远程 URL。该文件为明文，适合临时使用，发布完成后可清空 `GITHUB_PAT`；文件权限不提供加密。配置完成后只需告知「已填好」，不要发送变量内容。

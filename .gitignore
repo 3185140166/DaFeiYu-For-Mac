@@ -14,3 +14,6 @@ chat.json
 credentials.json
 __pycache__/
 *.py[cod]
+
+# Local GitHub publishing credentials (never commit)
+.env.github-publish
