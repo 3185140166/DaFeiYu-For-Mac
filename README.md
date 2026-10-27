@@ -282,7 +282,7 @@ Validation / 验证：`bash Tests/run_balance_tests.sh` exercises mocked balance
 
 默认形象为「Claude 卫衣」：待机使用 CrossPet 的 idle 立绘，点击切换到 happy 开心立绘，再点回到待机；闲置随机换表情也在这两张之间切换。原饭盆头和女仆装保留，可在设置或菜单栏切回。首次运行这个版本会一次性切换至卫衣，此后的手动选择会记住。菜单栏、聊天头像、设置页和应用图标使用同套卫衣形象。
 
-The two CrossPet sources retain their original pixel sizes, centered on a shared transparent canvas. Hoodie expressions are counted dynamically; the original skins keep their six expressions. Head-only edge cropping preserves the rotated source aspect ratio.
+The original CrossPet sources are preserved; the current hand-refined derivatives expose readable palms and orange sleeve trim, normalized onto a shared transparent canvas. Hoodie expressions are counted dynamically; the original skins keep their six expressions. Head-only edge cropping preserves the rotated source aspect ratio.
 
 卫衣立绘及衍生图标：**CrossPet / lokicorvus and CrossPet contributors**；角色设计：**上善无形 / ZipZipPipe**。采用 **CC BY-NC-SA 4.0**，须署名、非商业使用、相同方式共享，不适用代码 MIT 许可。素材出处、固定版本、文件校验值和修改说明见 [artwork-src/claude-hoodie/README.md](artwork-src/claude-hoodie/README.md)，原许可及出处也随应用资源打包。
 
@@ -292,3 +292,5 @@ Skin validation / 皮肤验证：构建应用后执行 `bash Tests/run_skin_test
 ### 本机 GitHub 发布配置
 
 可在项目根目录的 `.env.github-publish` 中本地填写 `GITHUB_USERNAME` 和 `GITHUB_PAT`。该文件已被 Git 忽略，文件权限设为仅当前用户可读写。PAT 是敏感凭据，不要发到聊天、截图、日志或仓库；不要将其拼入 Git 远程 URL。该文件为明文，适合临时使用，发布完成后可清空 `GITHUB_PAT`；文件权限不提供加密。配置完成后只需告知「已填好」，不要发送变量内容。
+
+卫衣手部优化：两种姿态的小手已伸出袖口，采用肤色、手指轮廓和橙色袖边，提升桌宠尺寸下的辨识度。原版素材保留，编辑提示词及处理说明见 `artwork-src/claude-hoodie/hand-refinement/PROMPTS.md`。

@@ -24,3 +24,15 @@ Derived files: Sources/Resources/hoodie_stand.png, hoodie_face_happy.png,
 MenuBarIcon.png, header.png, AppIcon.icns; icon-src/AppIcon_1024.png.
 Reproduce: swift scripts/prepare_hoodie_art.swift; swift scripts/gen_menubar_icon.swift;
 swift scripts/gen_icon.swift; bash scripts/update_icon_bundle.sh.
+
+
+## Hand readability refinement v2
+
+The current runtime sprites use AI-edited derivatives in `hand-refinement/`:
+`idle-hands-v2.png` and `happy-hands-v2.png`. Both expose warm peach palms with
+readable thumbs/fingers and orange sleeve trim. Generated using built-in image_gen;
+full prompts and integration notes are in `hand-refinement/PROMPTS.md`.
+The high-resolution edits are uniformly scaled to 640×640 for the app. Surrounding
+linework may differ slightly due to image generation. Original WebP sources above
+are retained unchanged. Rebuild originals with `swift scripts/prepare_hoodie_art.swift --original`.
+These edited sprites and derived icons retain CC BY-NC-SA 4.0 and the same credits.
