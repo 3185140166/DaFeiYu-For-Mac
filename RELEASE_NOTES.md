@@ -1,3 +1,21 @@
+# Unreleased / 开发中
+
+- 新增默认 Claude 卫衣皮肤（待机 / 开心），统一菜单栏、聊天头像、设置和应用图标；保留原皮肤。卫衣素材及衍生图标按 CrossPet 的 CC BY-NC-SA 4.0 许可署名。
+
+- 点击桌宠查询已配置的 DeepSeek 官方 API 余额，保留换表情和音效；显示更新时间，缓存 60 秒，失败明确提示。修复右侧扒边的镜像点击区域。
+
+- 新增独立多会话、新建/切换/删除会话及旧记录迁移。长对话按阈值增量生成滚动摘要，近期原文保留；摘要失败回退滑动窗口，并显示聊天/摘要用量。单条输入最多 8,000 字符。
+
+- Optional AI chat from the menu bar, pet context menu and Settings.
+- Streaming replies, cancellation, local history and Keychain credentials.
+- The pet remains offline; sending chat shares recent messages with the configured provider.
+- 新增可选 AI 聊天：流式回复、停止生成、本地记录和钥匙串密钥。发送聊天时会将最近对话交给配置的模型服务。
+
+The notes below describe the original 1.0.0 release before AI chat was added.
+以下为加入 AI 聊天之前的 1.0.0 历史发布说明。
+
+---
+
 # 白饭鱼 / BaifanYu v1.0.0 — Release Notes / 发布说明
 
 | Item / 项目 | Detail / 详情 |

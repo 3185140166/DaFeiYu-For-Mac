@@ -31,3 +31,13 @@ Sources/Resources/*.png （立绘与表情）与 docs/ 下的图片属于社区�
 The image assets (Sources/Resources/*.png and docs/) are community fan art
 taken from the original Android project. They are NOT licensed under the MIT
 License — personal, non-commercial use only.
+
+--------------------------------------------------------------------
+Claude hoodie artwork and derived icons / Claude 卫衣立绘与衍生图标
+
+The Claude hoodie assets from CrossPet, and their derivatives in this project,
+are licensed under CC BY-NC-SA 4.0 (not MIT). Credit CrossPet / lokicorvus and
+CrossPet contributors, 上善无形 and ZipZipPipe. Attribution, noncommercial use
+and ShareAlike apply. See artwork-src/claude-hoodie/README.md and the bundled
+Sources/Resources/HoodieArtworkLicense.txt for source revision, modifications
+and the upstream notice. https://creativecommons.org/licenses/by-nc-sa/4.0/

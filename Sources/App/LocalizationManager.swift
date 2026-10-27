@@ -25,7 +25,7 @@ enum L10nKey: String, CaseIterable {
     // Menu bar
     case showHer, hideHer, nextFace, skinMenu, settings, about, quit, launchAtLogin
     // Skins
-    case skinBasin, skinMaid
+    case skinBasin, skinMaid, skinHoodie
     // Settings — size
     case sizeSection, sizeHint, hoverSize, perchWidth, amplitudeLabel
     // Settings — behaviour
@@ -195,14 +195,14 @@ final class LocalizationManager: ObservableObject {
 
     private let strings: [L10nKey: [AppLanguage: String]] = [
         // ---------------------------------------------------------------- Identity
-        .appName: [.english: "BaifanYu", .simplifiedChinese: "白饭鱼", .traditionalChinese: "白飯魚"],
-        .menuBarTitle: [.english: "BaifanYu", .simplifiedChinese: "白饭鱼", .traditionalChinese: "白飯魚"],
+        .appName: [.english: "DaFeiYu", .simplifiedChinese: "大肥鱼", .traditionalChinese: "大肥魚"],
+        .menuBarTitle: [.english: "DaFeiYu", .simplifiedChinese: "大肥鱼", .traditionalChinese: "大肥魚"],
         .tagline: [.english: "A rice-eating whale girl, living on your Mac desktop",
                    .simplifiedChinese: "吃白饭的鲸鱼娘，挂在你的 Mac 桌面上",
                    .traditionalChinese: "吃白飯的鯨魚娘，掛在你的 Mac 桌面上"],
-        .subtitle: [.english: "Offline · No uploads · No account",
-                    .simplifiedChinese: "不联网 · 不上传 · 不要账号",
-                    .traditionalChinese: "不聯網 · 不上傳 · 不要帳號"],
+        .subtitle: [.english: "Offline pet · Optional AI chat",
+                    .simplifiedChinese: "离线桌宠 · 可选 AI 聊天",
+                    .traditionalChinese: "離線桌寵 · 可選 AI 聊天"],
 
         // ---------------------------------------------------------------- Menu bar
         .showHer: [.english: "Bring her out", .simplifiedChinese: "让她出现", .traditionalChinese: "讓她出現"],
@@ -210,12 +210,13 @@ final class LocalizationManager: ObservableObject {
         .nextFace: [.english: "Another expression", .simplifiedChinese: "换一个表情", .traditionalChinese: "換一個表情"],
         .skinMenu: [.english: "Skin", .simplifiedChinese: "皮肤", .traditionalChinese: "皮膚"],
         .settings: [.english: "Settings…", .simplifiedChinese: "设置…", .traditionalChinese: "設定…"],
-        .about: [.english: "About BaifanYu", .simplifiedChinese: "关于白饭鱼", .traditionalChinese: "關於白飯魚"],
-        .quit: [.english: "Quit BaifanYu", .simplifiedChinese: "退出白饭鱼", .traditionalChinese: "結束白飯魚"],
+        .about: [.english: "About DaFeiYu", .simplifiedChinese: "关于大肥鱼", .traditionalChinese: "關於大肥魚"],
+        .quit: [.english: "Quit DaFeiYu", .simplifiedChinese: "退出大肥鱼", .traditionalChinese: "結束大肥魚"],
         .launchAtLogin: [.english: "Launch at login", .simplifiedChinese: "登录时自动启动", .traditionalChinese: "登入時自動啟動"],
 
         // ---------------------------------------------------------------- Skins
         .skinBasin: [.english: "Bowl-head", .simplifiedChinese: "饭盆头", .traditionalChinese: "飯盆頭"],
+        .skinHoodie: [.english: "Claude hoodie", .simplifiedChinese: "Claude 卫衣", .traditionalChinese: "Claude 衛衣"],
         .skinMaid: [.english: "Maid outfit", .simplifiedChinese: "女仆装", .traditionalChinese: "女僕裝"],
 
         // ---------------------------------------------------------------- Size & motion
@@ -241,8 +242,8 @@ final class LocalizationManager: ObservableObject {
 
         // ---------------------------------------------------------------- Skin section
         .skinSection: [.english: "Skin", .simplifiedChinese: "皮肤", .traditionalChinese: "皮膚"],
-        .skinHint: [.english: "Two looks, 6 expressions each", .simplifiedChinese: "两套形象，每套 6 个表情",
-                    .traditionalChinese: "兩套形象，每套 6 個表情"],
+        .skinHint: [.english: "Three looks: hoodie has idle + happy; original skins have 6 expressions each", .simplifiedChinese: "三套形象：卫衣有待机和开心两种姿态，原皮肤各有 6 个表情",
+                    .traditionalChinese: "三套形象：衛衣有待機和開心兩種姿態，原皮膚各有 6 個表情"],
         .tapToSwitch: [.english: "Click to switch", .simplifiedChinese: "点击切换", .traditionalChinese: "點擊切換"],
 
         // ---------------------------------------------------------------- Actions
@@ -260,9 +261,9 @@ final class LocalizationManager: ObservableObject {
         .statusSection: [.english: "Her", .simplifiedChinese: "她的状态", .traditionalChinese: "她的狀態"],
         .statusRunning: [.english: "Status: with you", .simplifiedChinese: "状态：正在陪你", .traditionalChinese: "狀態：正在陪你"],
         .statusReady: [.english: "Status: resting", .simplifiedChinese: "状态：休息中", .traditionalChinese: "狀態：休息中"],
-        .facesLoaded: [.english: "Artwork loaded: %d / 6 expressions",
-                       .simplifiedChinese: "表情素材：已加载 %d / 6",
-                       .traditionalChinese: "表情素材：已載入 %d / 6"],
+        .facesLoaded: [.english: "Artwork loaded: %d / %d expressions",
+                       .simplifiedChinese: "表情素材：已加载 %d / %d",
+                       .traditionalChinese: "表情素材：已載入 %d / %d"],
         .facesMissing: [.english: "No expression artwork found — the app bundle is incomplete.",
                         .simplifiedChinese: "表情素材没加载成功 —— 应用包不完整。",
                         .traditionalChinese: "表情素材沒載入成功 —— 應用程式包不完整。"],
@@ -290,13 +291,13 @@ final class LocalizationManager: ObservableObject {
         .language: [.english: "Language", .simplifiedChinese: "语言", .traditionalChinese: "語言"],
         .followSystem: [.english: "Follow System", .simplifiedChinese: "跟随系统", .traditionalChinese: "跟隨系統"],
         .creditsTitle: [.english: "Credits", .simplifiedChinese: "素材与致谢", .traditionalChinese: "素材與致謝"],
-        .creditsBody: [.english: "Whale girl character from the DeepSeek community; standing art & expressions generated with AI and cut out by the original author; duck squeaks from Mixkit (Mixkit Free License).",
-                       .simplifiedChinese: "角色形象来自 DeepSeek 社区同人创作；立绘与表情由 AI 生成、原作者后期对齐去背；小黄鸭音效来自 Mixkit（Mixkit Free License）。",
-                       .traditionalChinese: "角色形象來自 DeepSeek 社群同人創作；立繪與表情由 AI 生成、原作者後期對齊去背；小黃鴨音效來自 Mixkit（Mixkit Free License）。"],
+        .creditsBody: [.english: "Whale girl character from the DeepSeek community; standing art & expressions generated with AI and cut out by the original author; duck squeaks from Mixkit (Mixkit Free License). Claude hoodie art: CrossPet; DeepSeek character design: 上善无形 / ZipZipPipe (CC BY-NC-SA 4.0).",
+                       .simplifiedChinese: "角色形象来自 DeepSeek 社区同人创作；立绘与表情由 AI 生成、原作者后期对齐去背；小黄鸭音效来自 Mixkit（Mixkit Free License）。Claude 卫衣立绘：CrossPet；角色设计：上善无形 / ZipZipPipe（CC BY-NC-SA 4.0）。",
+                       .traditionalChinese: "角色形象來自 DeepSeek 社群同人創作；立繪與表情由 AI 生成、原作者後期對齊去背；小黃鴨音效來自 Mixkit（Mixkit Free License）。Claude 衛衣立繪：CrossPet；角色設計：上善無形 / ZipZipPipe（CC BY-NC-SA 4.0）。"],
         .licenseTitle: [.english: "License", .simplifiedChinese: "许可证", .traditionalChinese: "授權"],
-        .licenseBody: [.english: "Code: MIT. Artwork: personal, non-commercial use only.",
-                       .simplifiedChinese: "代码：MIT。美术资源：仅限个人非商业使用。",
-                       .traditionalChinese: "程式碼：MIT。美術資源：僅限個人非商業使用。"],
+        .licenseBody: [.english: "Code: MIT. Original artwork: personal, non-commercial use. CrossPet hoodie artwork and derived icons: CC BY-NC-SA 4.0 (attribution, noncommercial, ShareAlike).",
+                       .simplifiedChinese: "代码：MIT。原美术资源：个人非商业使用。CrossPet 卫衣立绘及衍生图标：CC BY-NC-SA 4.0，须署名、非商业、相同方式共享。",
+                       .traditionalChinese: "程式碼：MIT。原美術資源：個人非商業使用。CrossPet 衛衣立繪及衍生圖示：CC BY-NC-SA 4.0，須署名、非商業、相同方式分享。"],
 
         // ---------------------------------------------------------------- First launch
         .firstRunCopyrightTitle: [.english: "Copyright Notice", .simplifiedChinese: "版权声明", .traditionalChinese: "版權聲明"],
@@ -304,17 +305,17 @@ final class LocalizationManager: ObservableObject {
                                  .simplifiedChinese: "macOS 版 © 2026 Du Haoze. 保留所有权利。\n\n代码采用 MIT License 开源许可。角色美术资源来自原作者 LIN428924379 的 Android 应用《白饭鱼》—— 属于社区同人创作，不在 MIT 许可范围内，仅限个人非商业使用。请勿将美术资源用于商业用途。",
                                  .traditionalChinese: "macOS 版 © 2026 Du Haoze. 保留所有權利。\n\n程式碼採用 MIT License 開源授權。角色美術資源來自原作者 LIN428924379 的 Android 應用《白飯魚》—— 屬於社群同人創作，不在 MIT 授權範圍內，僅限個人非商業使用。請勿將美術資源用於商業用途。"],
         .firstRunPrivacyTitle: [.english: "Privacy Notice", .simplifiedChinese: "隐私声明", .traditionalChinese: "隱私聲明"],
-        .firstRunPrivacyBody: [.english: "BaifanYu is completely offline. It has no network code at all: no analytics, no tracking, no account, no uploads.\n\nEverything — her position, size, expressions and squeaks — stays on this Mac, stored in your local preferences.",
-                              .simplifiedChinese: "白饭鱼完全离线运行。它没有任何网络代码：无统计、无追踪、不要账号、不上传。\n\n她的位置、大小、表情和音效全部保留在这台 Mac 上，存放在本地偏好设置里。",
-                              .traditionalChinese: "白飯魚完全離線執行。它沒有任何網路程式碼：無統計、無追蹤、不要帳號、不上傳。\n\n她的位置、大小、表情和音效全部保留在這台 Mac 上，存放在本地偏好設定裡。"],
+        .firstRunPrivacyBody: [.english: "The desktop pet works offline, with no analytics or tracking. Optional AI chat sends a character prompt, saved conversation summary and recent turns to your configured provider when you send. Long conversations make an additional request to summarize older turns. Provider API fees may apply. Chat history stays on this Mac; API keys are stored in macOS Keychain.",
+                              .simplifiedChinese: "桌宠功能离线运行，无统计、无追踪。可选 AI 聊天在发送时，将角色设定、会话摘要和近期原文交给配置的模型服务；长对话会额外请求模型总结较早内容，可能产生 API 费用。聊天记录保存在本机，API Key 保存在 macOS 钥匙串。",
+                              .traditionalChinese: "桌寵功能離線執行，無統計、無追蹤。可選 AI 聊天在傳送時，將角色設定、會話摘要和近期原文交給設定的模型服務；長對話會額外請求模型總結較早內容，可能產生 API 費用。聊天記錄儲存在本機，API Key 儲存在 macOS 鑰匙圈。"],
         .agree: [.english: "Agree", .simplifiedChinese: "同意", .traditionalChinese: "同意"],
         .disagree: [.english: "Disagree", .simplifiedChinese: "不同意", .traditionalChinese: "不同意"],
 
         // ---------------------------------------------------------------- Misc
         .privacyTitle: [.english: "Privacy", .simplifiedChinese: "隐私", .traditionalChinese: "隱私"],
-        .privacyBody: [.english: "Offline by design: no network, no analytics, no account.",
-                       .simplifiedChinese: "完全离线：无网络、无统计、不要账号。",
-                       .traditionalChinese: "完全離線：無網路、無統計、不要帳號。"],
+        .privacyBody: [.english: "Pet works offline. Optional AI chat sends summaries and recent turns to your provider.",
+                       .simplifiedChinese: "桌宠离线运行；可选 AI 聊天将摘要和近期原文发送至所配置的服务商。",
+                       .traditionalChinese: "桌寵離線執行；可選 AI 聊天會將摘要和近期原文傳送至設定的服務商。"],
         .loginItemFailed: [.english: "Could not change the login item — move the app to /Applications first.",
                            .simplifiedChinese: "无法修改登录项 —— 请先把 App 拖到「应用程序」文件夹。",
                            .traditionalChinese: "無法修改登入項 —— 請先把 App 拖到「應用程式」資料夾。"],

@@ -1,7 +1,7 @@
 import Foundation
 import CoreGraphics
 
-/// One skin = a standing image + 6 expressions, plus how to crop her head when
+/// One skin = a standing image + its available expressions, plus a head crop when
 /// she perches on a screen edge.
 ///
 /// The crop ratios are measured on the *original* artwork and are different per
@@ -21,11 +21,14 @@ struct PetSkin {
     /// Expression order, identical to the Android app's `SKINS[].faces`.
     static let faceOrder = ["happy", "sad", "angry", "surprised", "shy", "confused"]
 
+    var expressionNames: [String] = Self.faceOrder
+    static let defaultSkinIndex = 2
+
     var standResource: String { "\(prefix)_stand" }
-    var faceResources: [String] { Self.faceOrder.map { "\(prefix)_face_\($0)" } }
+    var faceResources: [String] { expressionNames.map { "\(prefix)_face_\($0)" } }
 
     /// Expression index 0 means "no expression" (the plain standing art);
-    /// 1...6 index into `faceResources`.
+    /// Positive indices refer to `faceResources`.
     var expressionCount: Int { faceResources.count }
 
     static let skins: [PetSkin] = [
@@ -34,6 +37,9 @@ struct PetSkin {
         PetSkin(index: 1, nameKey: .skinMaid, prefix: "maid",
                 headX0: 35.0 / 1191.0, headX1: 985.0 / 1191.0,
                 headY0: 30.0 / 1514.0, headY1: 800.0 / 1514.0),
+        PetSkin(index: 2, nameKey: .skinHoodie, prefix: "hoodie",
+                headX0: 0.020, headX1: 0.880, headY0: 0.000, headY1: 0.580,
+                expressionNames: ["happy"]),
     ]
 
     static func skin(at index: Int) -> PetSkin {
@@ -41,6 +47,7 @@ struct PetSkin {
     }
 
     func resourceName(for expression: Int) -> String {
-        expression <= 0 ? standResource : faceResources[expression - 1]
+        guard expression > 0, expression <= expressionCount else { return standResource }
+        return faceResources[expression - 1]
     }
 }

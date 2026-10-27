@@ -105,6 +105,7 @@ struct HoverBubbleView: View {
                 .font(.system(size: 26, weight: .semibold))
                 .monospacedDigit()
                 .lineLimit(1)
+                .minimumScaleFactor(0.55)
 
             Divider()
                 .padding(.vertical, 2)

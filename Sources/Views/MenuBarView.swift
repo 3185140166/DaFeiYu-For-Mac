@@ -31,6 +31,8 @@ struct MenuBarView: View {
             }
         }
 
+        Button(ChatText.title) { ChatWindowController.shared.open() }
+
         Divider()
 
         Toggle(locale[.soundTitle], isOn: $pet.soundOn)

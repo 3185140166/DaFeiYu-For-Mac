@@ -43,7 +43,7 @@ final class AboutWindowController: NSObject, NSWindowDelegate {
         let win = NSWindow(contentViewController: controller)
         win.title = "\(LocalizationManager.shared[.about])"
         win.styleMask = [.titled, .closable]
-        win.setContentSize(NSSize(width: 420, height: 470))
+        win.setContentSize(NSSize(width: 420, height: 620))
         win.center()
         win.delegate = self
         win.isReleasedWhenClosed = false
@@ -125,7 +125,7 @@ struct AboutView: View {
                 .foregroundStyle(.tertiary)
                 .padding(.bottom, 16)
         }
-        .frame(width: 420, height: 470)
+        .frame(width: 420, height: 620)
         .background(Color(nsColor: .windowBackgroundColor))
     }
 }

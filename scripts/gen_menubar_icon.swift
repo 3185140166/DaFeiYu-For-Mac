@@ -1,5 +1,5 @@
 #!/usr/bin/env swift
-// Renders 白饭鱼's menu bar icon in FULL COLOUR: her head (bowl-head skin),
+// Renders 白饭鱼's menu bar icon in FULL COLOUR: her head (Claude hoodie skin),
 // tightly cropped, antialiased, 44 px tall (= 22 pt @2x).
 // Template silhouettes of this artwork turn into a blob — colour is what makes
 // her readable at menu-bar size.
@@ -8,7 +8,7 @@ import AppKit
 import CoreGraphics
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-let source = root.appendingPathComponent("Sources/Resources/basin_stand.png")
+let source = root.appendingPathComponent("Sources/Resources/hoodie_stand.png")
 let output = root.appendingPathComponent("Sources/Resources/MenuBarIcon.png")
 
 guard let image = NSImage(contentsOf: source),
@@ -21,7 +21,7 @@ let sw = CGFloat(cg.width), sh = CGFloat(cg.height)
 // Head crop — the same ratios the app uses for the perched pose, but with a bit
 // more of the shoulders so the cut doesn't look accidental.
 let crop = CGRect(x: 0.020 * sw, y: 0.010 * sh,
-                  width: (0.985 - 0.020) * sw, height: (0.640 - 0.010) * sh).integral
+                  width: (0.880 - 0.020) * sw, height: (0.640 - 0.010) * sh).integral
 guard let head = cg.cropping(to: crop) else { exit(1) }
 
 // Tight alpha box so her face fills the icon.

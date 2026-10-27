@@ -26,7 +26,7 @@ final class PetView: NSView {
 
     // MARK: - Configuration (set by the controller)
 
-    var skinIndex = 0 { didSet { if oldValue != skinIndex { invalidate() } } }
+    var skinIndex = PetSkin.defaultSkinIndex { didSet { if oldValue != skinIndex { invalidate() } } }
     var expression = 0 { didSet { if oldValue != expression { invalidate() } } }
     var mode: Mode = .hover { didSet { if oldValue != mode { invalidate() } } }
     var mirror = false
@@ -91,8 +91,8 @@ final class PetView: NSView {
         let s = skin, size = sourceSize
         let cropW = (s.headX1 - s.headX0) * size.width
         let cropH = (s.headY1 - s.headY0) * size.height
-        guard cropW > 0 else { return 1.23 }
-        return cropH / cropW
+        guard cropW > 0, cropH > 0 else { return 1.23 }
+        return cropW / cropH
     }
 
     var hoverWindowSize: NSSize {
@@ -115,7 +115,7 @@ final class PetView: NSView {
         invalidate()
     }
 
-    /// Clicking her cycles 0 → 1 → … → 6 → 0, skipping expressions whose art is missing.
+    /// Cycle the current skin’s artwork, skipping expressions whose art is missing.
     @discardableResult
     func cycleExpression() -> Int {
         let skin = self.skin
@@ -296,7 +296,9 @@ final class PetView: NSView {
         guard let bitmap = artwork(scale: scale) else { return false }
         let dst = destinationRect()
         guard dst.width > 1, dst.height > 1 else { return false }
-        let normalized = CGPoint(x: (point.x - dst.minX) / dst.width,
+        // Right-edge artwork is mirrored by drawPerch; hit testing must match it.
+        let artworkX = mode == .perch && mirror ? bounds.width - point.x : point.x
+        let normalized = CGPoint(x: (artworkX - dst.minX) / dst.width,
                                  y: (point.y - dst.minY) / dst.height)
         guard normalized.x >= 0, normalized.x <= 1, normalized.y >= 0, normalized.y <= 1 else { return false }
         return bitmap.isOpaque(atNormalized: normalized)
@@ -375,6 +377,13 @@ final class PetView: NSView {
                              y: windowOriginAtMouseDown.y + (point.y - mouseDownScreenPoint.y))
         interactionDelegate?.petView(self, dragTo: origin)
         invalidate()
+    }
+
+    /// Call after changing window geometry during a drag to prevent a jump.
+    func rebaseDrag() {
+        mouseDownScreenPoint = NSEvent.mouseLocation
+        lastScreenPoint = mouseDownScreenPoint
+        windowOriginAtMouseDown = window?.frame.origin ?? .zero
     }
 
     override func mouseUp(with event: NSEvent) {

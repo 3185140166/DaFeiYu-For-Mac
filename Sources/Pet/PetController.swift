@@ -54,6 +54,7 @@ final class PetController: NSObject, ObservableObject {
     private var didInstallMonitors = false
 
     // Wandering — same numbers as the Android wander loop.
+    private var detachedDuringDrag = false
     private var wanderTargetX: CGFloat = -1
     private var wanderX: CGFloat = 0
     private var wanderWaitUntil: CFTimeInterval = 0
@@ -71,8 +72,13 @@ final class PetController: NSObject, ObservableObject {
     private var lastBubbleSentence = ""
     private var lastBubbleAnchor: NSRect = .zero
     private let bubble = HoverBubble()
+    private var balanceBubbleUntil: CFTimeInterval = 0
+    private var balanceQueryTask: Task<Void, Never>?
+    private var balanceQueryID: UUID?
+    private var balanceDismissTask: Task<Void, Never>?
 
     private override init() {
+        AppSettings.adoptHoodieDefaultIfNeeded()
         hoverHeight = AppSettings.hoverHeight
         perchWidth = AppSettings.perchWidth
         amplitude = AppSettings.amplitude
@@ -140,6 +146,11 @@ final class PetController: NSObject, ObservableObject {
     }
 
     func hide() {
+        balanceQueryTask?.cancel()
+        balanceQueryTask = nil
+        balanceQueryID = nil
+        balanceDismissTask?.cancel()
+        balanceBubbleUntil = 0
         stopFrameTimer()
         bubble.hide()
         setHovering(false)
@@ -374,7 +385,7 @@ final class PetController: NSObject, ObservableObject {
         if hovering {
             hoverBeganAt = CACurrentMediaTime()
         } else {
-            bubble.hide()
+            if CACurrentMediaTime() >= balanceBubbleUntil || view?.isBeingDragged == true { bubble.hide() }
             lastBubbleSecond = -1
             lastBubbleAnchor = .zero
         }
@@ -382,6 +393,14 @@ final class PetController: NSObject, ObservableObject {
 
     private func updateBubble(now: CFTimeInterval) {
         guard let panel else { bubble.hide(); return }
+        if now < balanceBubbleUntil, view?.isBeingDragged != true {
+            bubble.move(near: panel.frame, on: panel.screen)
+            return
+        }
+        if balanceBubbleUntil != 0 {
+            balanceBubbleUntil = 0
+            bubble.hide()
+        }
         guard isHoveringHer, !(view?.isBeingDragged ?? false) else { bubble.hide(); return }
 
         let locale = LocalizationManager.shared
@@ -409,6 +428,80 @@ final class PetController: NSObject, ObservableObject {
             bubble.model.dateText = locale.fullDate(moment)
             bubble.model.timeText = locale.mediumTime(moment)
         }
+    }
+
+    // MARK: - Click to check the configured official DeepSeek account balance
+
+    private func showBalanceBubble(value: String, detail: String) {
+        guard let panel, isRunning else { return }
+        balanceBubbleUntil = CACurrentMediaTime() + 8
+        bubble.show(near: panel.frame, on: panel.screen, sentence: detail,
+                    date: ChatText.pick("DeepSeek API 余额", "DeepSeek API balance"), time: value)
+        balanceDismissTask?.cancel()
+        balanceDismissTask = Task { [weak self] in
+            do { try await Task.sleep(for: .seconds(8)) } catch { return }
+            guard let self else { return }
+            self.balanceBubbleUntil = 0
+            self.bubble.hide()
+            self.hoverBeganAt = CACurrentMediaTime()
+        }
+    }
+
+    private func showAPIBalance() {
+        guard balanceQueryTask == nil else { return }
+        let endpoint = ChatStore.shared.endpoint
+        do {
+            _ = try DeepSeekBalance.balanceURL(for: endpoint)
+            let key = try ChatKeychain.read(endpoint: endpoint)
+            guard !key.isEmpty else { throw DeepSeekBalanceFailure.missingKey }
+            showBalanceBubble(value: ChatText.pick("查询中…", "Checking…"),
+                              detail: ChatText.pick("正在查询官方账户余额", "Checking your official account balance"))
+            let queryID = UUID()
+            balanceQueryID = queryID
+            balanceQueryTask = Task { [weak self] in
+                defer {
+                    if self?.balanceQueryID == queryID {
+                        self?.balanceQueryTask = nil
+                        self?.balanceQueryID = nil
+                    }
+                }
+                do {
+                    let snapshot = try await DeepSeekBalance.shared.fetch(endpoint: endpoint, key: key)
+                    guard !Task.isCancelled, let self, self.isRunning,
+                          ChatStore.shared.endpoint == endpoint,
+                          (try? ChatKeychain.read(endpoint: endpoint)) == key,
+                          self.view?.isBeingDragged != true else { return }
+                    let time = LocalizationManager.shared.mediumTime(snapshot.fetchedAt)
+                    let availability = snapshot.isAvailable
+                        ? ChatText.pick("60 秒内复用查询结果", "Cached for up to 60 seconds")
+                        : ChatText.pick("余额不足或账户暂不可用", "Insufficient balance or account unavailable")
+                    self.showBalanceBubble(value: snapshot.displayAmount,
+                                           detail: ChatText.pick("更新于 \(time) · \(availability)", "Updated \(time) · \(availability)"))
+                } catch {
+                    guard !Task.isCancelled, let self, self.isRunning, ChatStore.shared.endpoint == endpoint,
+                          (try? ChatKeychain.read(endpoint: endpoint)) == key,
+                          self.view?.isBeingDragged != true else { return }
+                    self.showBalanceError(error)
+                }
+            }
+        } catch { showBalanceError(error) }
+    }
+
+    private func showBalanceError(_ error: Error) {
+        let detail: String
+        switch error {
+        case DeepSeekBalanceFailure.unsupported:
+            detail = ChatText.pick("请在聊天连接设置中使用 DeepSeek 官方接口。", "Use the official DeepSeek endpoint in chat settings.")
+        case DeepSeekBalanceFailure.missingKey:
+            detail = ChatText.pick("请先在聊天连接设置中保存 API Key。", "Save an API key in chat connection settings first.")
+        case DeepSeekBalanceFailure.http(let code):
+            detail = ChatText.pick("HTTP \(code)：请检查密钥或稍后重试。", "HTTP \(code): check your key or try later.")
+        case let keychainError as NSError where keychainError.domain == NSOSStatusErrorDomain:
+            detail = ChatText.pick("无法读取密钥，请检查 macOS 钥匙串授权。", "Cannot read the key; check macOS Keychain access.")
+        default:
+            detail = ChatText.pick("请检查网络和连接设置，稍后再试。", "Check your network and connection settings; try again later.")
+        }
+        showBalanceBubble(value: ChatText.pick("暂时无法查询", "Balance unavailable"), detail: detail)
     }
 
     // MARK: - Random expressions
@@ -505,6 +598,11 @@ final class PetController: NSObject, ObservableObject {
         let menu = NSMenu()
         let locale = LocalizationManager.shared
 
+        let chatItem = NSMenuItem(title: ChatText.title, action: #selector(menuOpenChat), keyEquivalent: "")
+        chatItem.target = self
+        menu.addItem(chatItem)
+        menu.addItem(.separator())
+
         let skinItem = NSMenuItem(title: "\(locale[.skinMenu]): \(locale[PetSkin.skin(at: skinIndex).nameKey])",
                                   action: #selector(menuNextSkin), keyEquivalent: "")
         skinItem.target = self
@@ -534,6 +632,7 @@ final class PetController: NSObject, ObservableObject {
         menu.popUp(positioning: nil, at: NSPoint(x: local.x, y: local.y + 6), in: view)
     }
 
+    @objc private func menuOpenChat() { ChatWindowController.shared.open() }
     @objc private func menuNextSkin() { skinIndex = (skinIndex + 1) % PetSkin.skins.count }
     @objc private func menuNextFace() { cycleExpression() }
     @objc private func menuOpenSettings() { SettingsWindowController.shared.open() }
@@ -546,15 +645,23 @@ extension PetController: PetInteractionDelegate {
     func petView(_ view: PetView, dragTo windowOrigin: NSPoint) {
         guard let panel else { return }
         if isPerched {
-            // Dragging her away from the edge is what brings her back to floating.
             let full = screenFrame()
-            if windowOrigin.x > full.minX + full.width * 0.15,
-               windowOrigin.x < full.minX + full.width * 0.85 {
+            let oldSize = panel.frame.size
+            if PetDragGeometry.shouldDetach(origin: windowOrigin, size: oldSize, screen: full, onRight: perchedOnRight) {
+                let pointer = NSEvent.mouseLocation
                 exitPerch()
-                panel.setFrameOrigin(windowOrigin)
+                let origin = PetDragGeometry.floatingOrigin(pointer: pointer, proposedOrigin: windowOrigin,
+                                                           oldSize: oldSize, newSize: panel.frame.size)
+                panel.setFrameOrigin(clamped(origin: origin, size: panel.frame.size))
+                // The next mouse event must use the resized window as its baseline.
+                view.rebaseDrag()
+                detachedDuringDrag = true
                 return
             }
-            panel.setFrameOrigin(NSPoint(x: windowOrigin.x, y: panel.frame.origin.y))
+            // Small movements remain attached; vertical dragging still works.
+            let x = perchedOnRight ? full.maxX - oldSize.width : full.minX
+            let y = clamped(origin: windowOrigin, size: oldSize).y
+            panel.setFrameOrigin(NSPoint(x: x, y: y))
             return
         }
         panel.setFrameOrigin(clamped(origin: windowOrigin, size: panel.frame.size))
@@ -562,13 +669,25 @@ extension PetController: PetInteractionDelegate {
     }
 
     func petViewDidBeginDrag(_ view: PetView) {
+        balanceBubbleUntil = 0
+        balanceDismissTask?.cancel()
+        bubble.hide()
+        detachedDuringDrag = false
         wanderTargetX = -1
     }
 
     func petViewDidEndDrag(_ view: PetView, at screenPoint: NSPoint) {
         guard let panel else { return }
-        rememberPosition()
+        defer {
+            rememberPosition()
+            detachedDuringDrag = false
+        }
         guard !isPerched else { return }
+        // A short pull must not immediately snap the newly enlarged body back.
+        if detachedDuringDrag {
+            applyLayout()
+            return
+        }
         let full = screenFrame()
         // A fixed snap distance would swallow her once she is small, so the
         // threshold is the smaller of 56 pt and 25 % of her width.
@@ -586,6 +705,7 @@ extension PetController: PetInteractionDelegate {
         expression = view.expression
         scheduleNextRandomFace(from: CACurrentMediaTime())
         if soundOn { DuckSound.shared.squeak() }
+        showAPIBalance()
     }
 
     func petViewNeedsMenu(_ view: PetView) {

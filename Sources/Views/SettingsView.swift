@@ -49,6 +49,13 @@ struct SettingsView: View {
                 sizeBox
                 skinBox
                 behaviourBox
+                GroupBox {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(ChatText.pick("配置模型接口后，就能和大肥鱼聊天。密钥保存在钥匙串，对话保存在本机。", "Connect a model to chat with DaFeiYu. Keys stay in Keychain and history stays on this Mac."))
+                            .font(.callout).foregroundStyle(.secondary)
+                        Button(ChatText.title) { ChatWindowController.shared.open() }
+                    }.padding(4).frame(maxWidth: .infinity, alignment: .leading)
+                } label: { Label("AI", systemImage: "bubble.left.and.bubble.right") }
                 howToBox
                 aboutBox
             }
@@ -136,7 +143,7 @@ struct SettingsView: View {
         }
         let available = pet.availableExpressionCount
         parts.append(available > 0
-                     ? String(format: locale[.facesLoaded], Int32(available))
+                     ? String(format: locale[.facesLoaded], Int32(available), Int32(PetSkin.skin(at: pet.skinIndex).expressionCount))
                      : locale[.facesMissing])
         return parts.joined(separator: " · ")
     }

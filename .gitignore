@@ -3,3 +3,14 @@
 *.dmg
 .DS_Store
 BaifanYu.app/
+
+# Local credentials and conversation data
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+chat.json
+credentials.json
+__pycache__/
+*.py[cod]

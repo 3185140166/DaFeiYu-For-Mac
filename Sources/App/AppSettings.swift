@@ -62,8 +62,16 @@ enum AppSettings {
     }
 
     static var skinIndex: Int {
-        get { min(max(d.object(forKey: Key.skinIndex) as? Int ?? 0, 0), PetSkin.skins.count - 1) }
+        get { min(max(d.object(forKey: Key.skinIndex) as? Int ?? PetSkin.defaultSkinIndex, 0), PetSkin.skins.count - 1) }
         set { d.set(newValue, forKey: Key.skinIndex) }
+    }
+
+    /// Adopt the requested new default once; later manual skin choices remain saved.
+    static func adoptHoodieDefaultIfNeeded(in defaults: UserDefaults = .standard) {
+        let migrationKey = "whalepet.claude_hoodie_default_v1"
+        guard !defaults.bool(forKey: migrationKey) else { return }
+        defaults.set(PetSkin.defaultSkinIndex, forKey: Key.skinIndex)
+        defaults.set(true, forKey: migrationKey)
     }
 
     /// She is on screen (vs. called off).

@@ -147,7 +147,7 @@ final class PetArtworkStore {
         sourceImage(skin: skin, expression: expression) != nil
     }
 
-    /// How many of the 6 expressions of a skin actually load.
+    /// How many expressions of a skin actually load.
     func availableExpressionCount(skin: PetSkin) -> Int {
         (1...skin.expressionCount).filter { hasArtwork(skin: skin, expression: $0) }.count
     }

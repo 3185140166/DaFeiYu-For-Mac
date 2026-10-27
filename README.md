@@ -2,12 +2,12 @@
   <img src="docs/icon.png" width="128" alt="白饭鱼 / BaifanYu">
 </p>
 
-<h1 align="center">白饭鱼 / BaifanYu</h1>
+<h1 align="center">大肥鱼 / DaFeiYu for Mac</h1>
 
 <p align="center">
   A rice-eating whale girl who lives on your Mac desktop
   <br>
-  <b>Native Swift · Offline · No account · MIT code</b>
+  <b>Native Swift · Offline pet · Optional AI chat · MIT code</b>
 </p>
 
 <p align="center">
@@ -18,6 +18,30 @@
   <b>Thank you, LIN428924379 — the original idea, the character, the artwork and the
   interaction design are all yours. 感谢原作者，这个移植只是把你的作品搬到了 Mac 上。</b>
 </p>
+
+---
+
+## 当前定制版
+
+基于 [duhaoze2007/Baifanyu-For-Mac](https://github.com/duhaoze2007/Baifanyu-For-Mac) 扩展，保留上游历史、作者署名和素材许可。
+
+- 默认 Claude 卫衣大肥鱼，待机 / 开心两种姿态；菜单栏、聊天头像与应用图标使用同套形象。原饭盆头和女仆装仍可切换。
+- 可配置兼容 Chat Completions 的模型接口，支持流式聊天、回车发送 / Shift+回车换行、停止生成。
+- 独立多会话、新建 / 切换 / 删除会话；长对话按阈值增量摘要，保留近期原文与完整本地记录，并显示 token 用量。
+- API Key 使用 macOS 钥匙串，聊天记录存放在应用支持目录，不包含在代码仓库。
+- 点击桌宠显示 DeepSeek 官方 API 账户余额，缓存 60 秒；保留换表情和音效。
+- 修复短距离拖离屏幕边缘后不恢复全身、右侧扒边点击检测及旋转裁剪比例。
+
+构建运行：
+
+```bash
+bash build.sh
+open BaifanYu.app
+```
+
+最低 macOS 14，需 Swift 6 工具链。应用显示名为「大肥鱼」，可执行文件、应用包名和本地数据目录保留 `BaifanYu` 以兼容既有数据。模型 API Key 需在聊天连接设置中自行配置。
+
+代码采用 MIT；卫衣素材及衍生图标采用 CC BY-NC-SA 4.0，原美术素材亦有独立限制，详见下方许可和素材出处。
 
 ---
 
@@ -41,7 +65,7 @@ She floats on your desktop as a tiny borderless window. Drag her anywhere; drop 
 - **Six expressions** per skin, cycled by clicking her (whole artwork swaps, so no seams)
 - **Random expressions** — while she idles she changes face by herself every 18–75 s (menu bar + Settings toggle)
 - **Rest the pointer on her** and she stops wandering; a bubble appears with today's date, a live clock and a random kind word — move the pointer away and she carries on
-- **Two skins**: bowl-head (饭盆头) and maid outfit (女仆装)
+- **Three skins**: Claude hoodie (default, idle + happy), bowl-head (饭盆头) and maid outfit (女仆装)
 - **Rubber-duck squeak** on click, three real duck samples, can be switched off
 - **Idle wandering** — she crawls around on her own; she stops when you touch, drag, perch her, or leave the pointer resting on her
 - **Three size sliders**: floating height, head width while perched, amount of motion
@@ -50,7 +74,7 @@ She floats on your desktop as a tiny borderless window. Drag her anywhere; drop 
 - **Launch at login** support
 - **Stops rendering when you cannot see her** (occluded, screens asleep, session locked)
 - **Trilingual UI**: English / 简体中文 / 繁體中文 (follows the system or a manual override)
-- **100 % offline** — no network code at all: no analytics, no tracking, no account
+- **Offline pet, optional AI chat** — pet interactions work offline; chat sends summaries and recent turns to your configured provider when you send; long chats make an extra summarization request
 - **MIT licensed code**, no third-party dependencies
 
 ---
@@ -61,7 +85,7 @@ She floats on your desktop as a tiny borderless window. Drag her anywhere; drop 
 - **每套皮肤 6 个表情**，点她循环切换（整张立绘切换，没有接缝）
 - **随机换表情** —— 闲着的时候她自己每隔 18~75 秒换一个表情（菜单栏 + 设置里都能开关）
 - **鼠标停在她身上**：她就不走了，旁边浮出一个小气泡，写今天的日期、实时的时间和一句随机的关心话；鼠标移开她就继续
-- **两套皮肤**：饭盆头 / 女仆装
+- **三套皮肤**：Claude 卫衣（默认，待机 + 开心）/ 饭盆头 / 女仆装
 - **小黄鸭音效**：点击时随机播一个真实鸭叫，可关
 - **自动溜达** —— 闲着的时候她自己爬来爬去；碰她、拖她、趴边、鼠标停在她身上时不动
 - **三档调节**：悬空大小 / 扒边时脑袋宽度 / 动态幅度
@@ -70,7 +94,7 @@ She floats on your desktop as a tiny borderless window. Drag her anywhere; drop 
 - **支持登录时自动启动**
 - **看不见她的时候真的停止渲染**（被遮挡、屏幕休眠、会话锁定时）
 - **三语界面**：English / 简体中文 / 繁體中文（跟随系统或手动切换）
-- **完全离线**：没有任何网络代码，无统计、无追踪、不要账号
+- **离线桌宠，可选 AI 聊天**：桌宠互动离线运行；发送聊天消息时，摘要及近期原文会交给配置的服务商，长对话会额外请求模型生成摘要
 - **MIT 开源代码**，无第三方依赖
 
 ---
@@ -197,3 +221,69 @@ releasing it under the MIT license. 感谢原作者把《白饭鱼》开源出�
 - **美术资源**（`Sources/Resources/*.png`、`docs/`）：来自原项目的社区同人创作，**不在 MIT 许可范围内**，仅限个人非商业使用
 
 macOS version © 2026 Du Haoze · Original Android app © 2026 LIN428924379
+
+
+## AI chat / AI 聊天
+
+Open **Chat with DaFeiYu** from the menu bar, the pet's right-click menu, or Settings.
+In **Connection settings**, enter the full Chat Completions endpoint URL, your provider's model ID and API key.
+The endpoint must support streaming (`stream: true`, SSE `data:` events with `choices[].delta.content`).
+Use HTTPS for remote services; HTTP is accepted only for localhost.
+
+从菜单栏、桌宠右键菜单或设置打开「和大肥鱼聊天」，点击齿轮配置：
+
+- **接口地址**：填写完整聊天接口，例如 `https://api.deepseek.com/chat/completions`，而不是仅填写域名。
+- **模型名称**：按服务商提供的模型 ID 填写，不使用 Codex CLI 登录凭证。
+- **API Key**：按接口地址分别保存在 macOS 钥匙串。本机无需认证的服务可留空。
+- **本机服务**：例如支持兼容接口的 `http://localhost:11434/v1/chat/completions`，模型须提前安装并启动服务。
+
+Press **Return** or click Send; **Shift+Return** inserts a new line. Stop cancels generation and keeps any received text.
+Closing the chat window also stops generation. The plus button starts a new conversation, the history button switches conversations, and the trash button permanently deletes the selected conversation after confirmation.
+A fixed character prompt, a per-conversation rolling summary (if available) and recent verbatim turns are sent to the selected provider. Compaction triggers at about 4,000 estimated input tokens or 12,000 recent content characters, and only when there is enough older material to amortize the summary request.
+History is stored as plaintext in `~/Library/Application Support/BaifanYu/chat.json`; keys are never stored there.
+Provider fees and data policies apply. No API call occurs simply from opening chat or saving connection settings.
+Other pet features remain offline. Conversations are independent; the active conversation is shared across model connections: clear it before switching providers if you do not want to send previous messages to the new provider.
+
+按 **回车** 或「发送」聊天，**Shift＋回车**换行；「停止」或关闭聊天窗口会取消生成并保留已收到的文字。
+聊天记录以明文保存在本机 `~/Library/Application Support/BaifanYu/chat.json`，可通过加号新建会话、历史按钮切换会话、垃圾桶按钮确认永久删除当前会话。
+每次发送会将角色设定、当前会话摘要（如有）和近期原文交给当前模型服务。约 4,000 估算输入 tokens 或 12,000 原文字符触发压缩；有足够较早消息时才额外请求一次摘要，可能产生 API 费用。
+打开聊天和保存设置不会自动发起模型请求。各会话相互独立；同一会话可切换模型连接，切换服务商前可先清空，避免把旧对话发送给新服务商。
+
+Developer validation / 开发验证：`python3 Tests/run_chat_tests.py` runs the real chat store against a local mock streaming server without Xcode, API keys or paid requests.
+
+当前定制版界面及聊天角色名为「大肥鱼 / DaFeiYu」。保留原应用标识、可执行文件名及数据路径，已有设置、密钥和对话继续可用；原作者作品名与版权声明保留。
+
+会话记录继续保存在 `chat.json`，格式升级为包含会话列表、当前会话 ID 和版本号的对象。旧版消息数组在首次保存时自动迁移为一个会话，保留原消息 ID 和正文。新会话不发送其他会话的内容；历史窗口可以删除单个会话，删除最后一个后自动保留一个空会话。生成回复时需先停止，才能切换、新建或删除会话。单条输入上限 8,000 字符；字符限制不等同于精确 token 计数，不含固定角色提示词。
+
+
+### Rolling memory / 滚动摘要
+
+- A short conversation reuses verbatim history. Many short turns are not dropped just because the count exceeds 21.
+- At approximately 4,000 estimated input tokens (or the raw-text character guard), summarize older complete turns while keeping recent turns verbatim. The last completed exchange and current question are always excluded from the summary request.
+- Summarization uses the same configured endpoint/model and credential as chat. It receives the previous summary plus only the next batch of unsummarized older messages, not the whole conversation. A single summary input batch is bounded at about 8,000 estimated content tokens, with a 600-token output cap. Oversized imported histories may need several chat requests to catch up.
+- Each conversation stores an optional summary with a version and covered message ID in `chat.json`; original messages are never deleted by compression. New conversations start without memory; deleting or clearing one removes its summary too.
+- A summary is committed only after complete generation and local persistence. Failure keeps prior memory and falls back to recent messages, with a retry cooldown of six added messages. Stop/close cancels both summarization and reply generation.
+- The provider-neutral estimate uses UTF-8 byte length / 2 plus message overhead. It is not an exact tokenizer or a guarantee of model context fit. Large recent individual messages may exceed the soft target. Original fallback guards (21 recent messages / 12,000 content characters) apply when the complete recent context does not fit the soft budget. Omitted gaps are explicitly marked for the model.
+- **上下文与用量** shows the estimated chat input separately from provider-reported chat/summary usage and optional cache-hit counts. Numbers are for the latest send only, not a cumulative bill or guaranteed savings. Missing provider usage stays unavailable. In Connection settings, disable usage reporting if a provider rejects `stream_options`.
+
+滚动摘要会产生额外模型请求；短会话不压缩，长会话分批压缩并跨轮复用。摘要可能遗漏信息，重要原文仍可在本地历史查看。摘要作为历史资料发送，不提升为系统指令。没有跨会话记忆，也没有后台定时模型请求。聊天停止、切换、新建、删除和旧格式迁移的行为保持一致。
+
+
+### Click for DeepSeek balance / 点击查询 DeepSeek 余额
+
+After saving the official DeepSeek chat endpoint and API key in chat connection settings, click the pet to change expression and display the official account balance for about eight seconds. The read-only request is `GET https://api.deepseek.com/user/balance`, authenticated using the same endpoint-specific Keychain credential. This does not invoke a chat model or send conversation text. Hovering without clicking still shows the date/clock/caring sentence.
+
+点击角色保留换表情和音效，并显示官方 API 账户余额、币种和查询时间，约 8 秒后恢复原悬停气泡。成功结果在内存缓存 60 秒；连续点击合并请求，失败后短暂冷却，不会轮询。切换密钥后不会复用其他账户的余额；缓存过期查询失败时显示不可用，不冒充最新余额。查询不使用大模型，不消耗聊天 tokens。未配置密钥、非官方域名、网络或接口错误均会明确提示；仅允许官方 HTTPS 域名，拒绝重定向。余额不会写入聊天记录或发送给模型。
+
+Validation / 验证：`bash Tests/run_balance_tests.sh` exercises mocked balance responses, host restrictions, cache expiry, credential isolation, concurrent clicks and error handling without reading your real API key or calling the real account endpoint.
+
+
+### Default Claude hoodie skin / 默认 Claude 卫衣皮肤
+
+默认形象为「Claude 卫衣」：待机使用 CrossPet 的 idle 立绘，点击切换到 happy 开心立绘，再点回到待机；闲置随机换表情也在这两张之间切换。原饭盆头和女仆装保留，可在设置或菜单栏切回。首次运行这个版本会一次性切换至卫衣，此后的手动选择会记住。菜单栏、聊天头像、设置页和应用图标使用同套卫衣形象。
+
+The two CrossPet sources retain their original pixel sizes, centered on a shared transparent canvas. Hoodie expressions are counted dynamically; the original skins keep their six expressions. Head-only edge cropping preserves the rotated source aspect ratio.
+
+卫衣立绘及衍生图标：**CrossPet / lokicorvus and CrossPet contributors**；角色设计：**上善无形 / ZipZipPipe**。采用 **CC BY-NC-SA 4.0**，须署名、非商业使用、相同方式共享，不适用代码 MIT 许可。素材出处、固定版本、文件校验值和修改说明见 [artwork-src/claude-hoodie/README.md](artwork-src/claude-hoodie/README.md)，原许可及出处也随应用资源打包。
+
+Skin validation / 皮肤验证：构建应用后执行 `bash Tests/run_skin_tests.sh`，验证默认迁移、手动切换保留、素材加载、两种姿态切换、透明画布和扒边比例。
