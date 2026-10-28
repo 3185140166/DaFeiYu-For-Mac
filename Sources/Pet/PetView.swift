@@ -26,11 +26,46 @@ final class PetView: NSView {
 
     // MARK: - Configuration (set by the controller)
 
-    var skinIndex = PetSkin.defaultSkinIndex { didSet { if oldValue != skinIndex { invalidate() } } }
+    var skinIndex = PetSkin.defaultSkinIndex { didSet { if oldValue != skinIndex { outgoingPose = nil; invalidate() } } }
     var expression = 0 { didSet { if oldValue != expression { invalidate() } } }
-    var mode: Mode = .hover { didSet { if oldValue != mode { invalidate() } } }
+    var mode: Mode = .hover { didSet { if oldValue != mode { outgoingPose = nil; invalidate() } } }
     var mirror = false
-    var walking = false { didSet { if oldValue != walking { invalidate() } } }
+    var walking = false {
+        didSet {
+            if oldValue != walking {
+                if skin.prefix == "hoodie", mode == .hover, !dragging {
+                    outgoingPose = oldValue ? .walk(frame: walkFrame, left: walkingLeft) : .standing(expression)
+                    poseTransitionBegan = CACurrentMediaTime()
+                } else { outgoingPose = nil }
+                if walking { walkDistance = 0 }
+                invalidate()
+            }
+        }
+    }
+    var walkingLeft = false
+    private(set) var walkDistance: CGFloat = 0
+    var walkFrame: Int { PetWalkMotion.frame(distance: walkDistance, height: hoverHeight) }
+    func advanceWalk(by distance: CGFloat) { walkDistance += abs(distance) }
+
+    private enum HoverPose {
+        case standing(Int)
+        case walk(frame: Int, left: Bool)
+    }
+    private var outgoingPose: HoverPose?
+    private var poseTransitionBegan: CFTimeInterval = 0
+    private let poseTransitionDuration: CFTimeInterval = 0.16
+    var isTransitioningPose: Bool {
+        outgoingPose != nil && CACurrentMediaTime() - poseTransitionBegan < poseTransitionDuration
+    }
+    private func bitmap(for pose: HoverPose, scale: CGFloat) -> PetBitmap? {
+        let pixels = Int((hoverHeight * scale).rounded())
+        switch pose {
+        case .standing(let expression):
+            return PetArtworkStore.shared.hoverArtwork(skin: skin, expression: expression, pixelHeight: pixels)
+        case .walk(let frame, let left):
+            return PetArtworkStore.shared.walkArtwork(skin: skin, frame: frame, facingLeft: left, pixelHeight: pixels)
+        }
+    }
 
     /// Sizes in points, matching the Android sliders (dp).
     var hoverHeight: CGFloat = 240 { didSet { invalidate() } }
@@ -192,10 +227,10 @@ final class PetView: NSView {
         if walking {
             // Walking = left/right sway + up/down bounce. Pure translation looks
             // like a sliding sticker, not like walking.
-            let wk = tau * t * 1.9
-            pDy += 0.016 * amplitude * abs(sin(wk))
-            pSy *= 1 + 0.018 * amplitude * sin(wk * 2)
-            dragTilt = 5.5 * sin(wk)
+            let phase = tau * walkDistance / PetWalkMotion.stride(height: hoverHeight)
+            pDy = -0.010 * amplitude * abs(sin(phase))
+            pSy = 1
+            dragTilt = 1.8 * amplitude * sin(phase)
         } else if !dragging {
             dragTilt = 0
         }
@@ -210,6 +245,10 @@ final class PetView: NSView {
         switch mode {
         case .hover:
             let pixels = Int((hoverHeight * scale).rounded())
+            if walking, !dragging,
+               let frame = store.walkArtwork(skin: skin, frame: walkFrame, facingLeft: walkingLeft, pixelHeight: pixels) {
+                return frame
+            }
             return store.hoverArtwork(skin: skin, expression: expression, pixelHeight: pixels)
         case .perch:
             let pixels = Int((perchWidth * scale).rounded())
@@ -251,11 +290,17 @@ final class PetView: NSView {
         let pivotY = bounds.height - hoverHeight * 0.10
 
         ctx.saveGState()
-        if dragging && dragTilt != 0 {
+        if (dragging || walking) && dragTilt != 0 {
             ctx.translateBy(x: cx, y: pivotY)
             ctx.rotate(by: dragTilt * .pi / 180)
             ctx.translateBy(x: -cx, y: -pivotY)
         }
+        if let outgoingPose, isTransitioningPose, let previous = self.bitmap(for: outgoingPose, scale: scale) {
+            let progress = CGFloat(min(1, max(0, (CACurrentMediaTime() - poseTransitionBegan) / poseTransitionDuration)))
+            ctx.setAlpha(1 - progress)
+            drawUpright(previous.image, in: dst, ctx: ctx)
+            ctx.setAlpha(progress)
+        } else { outgoingPose = nil }
         drawUpright(bitmap.image, in: dst, ctx: ctx)
         ctx.restoreGState()
     }
@@ -296,12 +341,25 @@ final class PetView: NSView {
         guard let bitmap = artwork(scale: scale) else { return false }
         let dst = destinationRect()
         guard dst.width > 1, dst.height > 1 else { return false }
-        // Right-edge artwork is mirrored by drawPerch; hit testing must match it.
+        var point = point
+        if mode == .hover, (dragging || walking), dragTilt != 0 {
+            let pivot = CGPoint(x: bounds.width / 2, y: bounds.height - hoverHeight * 0.10)
+            let angle = -dragTilt * .pi / 180
+            let dx = point.x - pivot.x, dy = point.y - pivot.y
+            point = CGPoint(x: pivot.x + dx * cos(angle) - dy * sin(angle),
+                            y: pivot.y + dx * sin(angle) + dy * cos(angle))
+        }
+        // Mirrored walking frames are already rasterized; perch mirrors at draw time.
         let artworkX = mode == .perch && mirror ? bounds.width - point.x : point.x
         let normalized = CGPoint(x: (artworkX - dst.minX) / dst.width,
                                  y: (point.y - dst.minY) / dst.height)
         guard normalized.x >= 0, normalized.x <= 1, normalized.y >= 0, normalized.y <= 1 else { return false }
-        return bitmap.isOpaque(atNormalized: normalized)
+        if bitmap.isOpaque(atNormalized: normalized) { return true }
+        if mode == .hover, isTransitioningPose, let outgoingPose,
+           let previous = self.bitmap(for: outgoingPose, scale: scale) {
+            return previous.isOpaque(atNormalized: normalized)
+        }
+        return false
     }
 
     /// Points over fully transparent pixels are not hers: `nil` here keeps the

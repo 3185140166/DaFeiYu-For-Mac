@@ -25,7 +25,7 @@
 
 基于 [duhaoze2007/Baifanyu-For-Mac](https://github.com/duhaoze2007/Baifanyu-For-Mac) 扩展，保留上游历史、作者署名和素材许可。
 
-- 默认 Claude 卫衣大肥鱼，待机 / 开心两种姿态；菜单栏、聊天头像与应用图标使用同套形象。原饭盆头和女仆装仍可切换。
+- 默认 Claude 卫衣大肥鱼，正面放松待机 / 开心姿态及四分之三侧身走路动画；菜单栏、聊天头像与应用图标使用同套形象。原饭盆头和女仆装仍可切换。
 - 可配置兼容 Chat Completions 的模型接口，支持流式聊天、回车发送 / Shift+回车换行、停止生成。
 - 独立多会话、新建 / 切换 / 删除会话；长对话按阈值增量摘要，保留近期原文与完整本地记录，并显示 token 用量。
 - API Key 使用 macOS 钥匙串，聊天记录存放在应用支持目录，不包含在代码仓库。
@@ -157,7 +157,7 @@ Three things from the original's "three hard rules for floating windows" carry o
 
 Per-pixel click-through is added on top: a global + local mouse monitor toggles `ignoresMouseEvents` depending on the alpha of the pixel under the pointer, so the transparent margin around her does not swallow clicks meant for the app behind her.
 
-The geometry is a direct port of the Android `PetView` — the same floating bob (`0.022 · amp · sin(2πt/2.4)`), the same breathing squash, the same drag tilt, the same `min(56 pt, width × 25 %)` edge-snap threshold, the same head-only crop while perched, and the same idle-wander numbers (4 pt per 16 ms tick, 0.8 s settle, 1.2–3.6 s rest, 5 s after a touch). `dp` becomes points ~1:1, so the sliders keep their original ranges (120–480 / 56–160 / 30–150 %) and the defaults (240 / 96 / 75 %).
+The geometry is a direct port of the Android `PetView` — the same floating bob (`0.022 · amp · sin(2πt/2.4)`), the same breathing squash, the same drag tilt, the same `min(56 pt, width × 25 %)` edge-snap threshold, the same head-only crop while perched, and the original rest timings (0.8 s settle, 1.2–3.6 s rest, 5 s after a touch). Wandering now uses elapsed time, about 48 pt/s at the default size, and a distance-driven three-quarter illustrated gait for the hoodie skin. `dp` becomes points ~1:1, so the sliders keep their original ranges (120–480 / 56–160 / 30–150 %) and the defaults (240 / 96 / 75 %).
 
 While she hangs on an edge, the same artwork is reused: rotated 90° and cropped to her head, exactly as on Android — no extra "perched" asset is needed.
 
@@ -280,7 +280,7 @@ Validation / 验证：`bash Tests/run_balance_tests.sh` exercises mocked balance
 
 ### Default Claude hoodie skin / 默认 Claude 卫衣皮肤
 
-默认形象为「Claude 卫衣」：待机使用 CrossPet 的 idle 立绘，点击切换到 happy 开心立绘，再点回到待机；闲置随机换表情也在这两张之间切换。原饭盆头和女仆装保留，可在设置或菜单栏切回。首次运行这个版本会一次性切换至卫衣，此后的手动选择会记住。菜单栏、聊天头像、设置页和应用图标使用同套卫衣形象。
+默认形象为「Claude 卫衣」：待机使用基于 CrossPet 衍生的正面放松立绘，双手自然下垂；点击切换到 happy 开心立绘，再点回到待机；闲置随机换表情也在这两张之间切换。原饭盆头和女仆装保留，可在设置或菜单栏切回。首次运行这个版本会一次性切换至卫衣，此后的手动选择会记住。菜单栏、聊天头像、设置页和应用图标使用同套卫衣形象。
 
 The original CrossPet sources are preserved; the current hand-refined derivatives expose readable palms and orange sleeve trim, normalized onto a shared transparent canvas. Hoodie expressions are counted dynamically; the original skins keep their six expressions. Head-only edge cropping preserves the rotated source aspect ratio.
 
@@ -294,3 +294,21 @@ Skin validation / 皮肤验证：构建应用后执行 `bash Tests/run_skin_test
 可在项目根目录的 `.env.github-publish` 中本地填写 `GITHUB_USERNAME` 和 `GITHUB_PAT`。该文件已被 Git 忽略，文件权限设为仅当前用户可读写。PAT 是敏感凭据，不要发到聊天、截图、日志或仓库；不要将其拼入 Git 远程 URL。该文件为明文，适合临时使用，发布完成后可清空 `GITHUB_PAT`；文件权限不提供加密。配置完成后只需告知「已填好」，不要发送变量内容。
 
 卫衣手部优化：两种姿态的小手已伸出袖口，采用肤色、手指轮廓和橙色袖边，提升桌宠尺寸下的辨识度。原版素材保留，编辑提示词及处理说明见 `artwork-src/claude-hoodie/hand-refinement/PROMPTS.md`。
+
+
+### Hoodie walking animation / 卫衣走路动画
+
+当前步态使用完整的四分之三侧身立绘，左右各八帧；不再剪切或重新拼接腿部，避免裙摆、大腿出现透明断层。停止后以 0.16 秒过渡回正面放松姿态，保留点击时的开心举手。
+
+步态按实际移动距离推进，移动按时间计算：默认约 48 pt/s，随角色大小调整并限制在 28–72 pt/s。悬停、拖动、扒边、关闭自动溜达或到达目标都会停止迈腿。其他皮肤保留原立绘和身体起伏。
+
+素材归一化到 896×640 透明画布，左右步态与正面立绘对齐脸部位置、共用缩放比例。加宽透明画布以容纳不同朝向的尾巴，实际人物高度仍由原滑块控制；透明处继续点击穿透。扒边使用正面头部裁剪，不使用走路图。脚底、尾巴均留出透明边距。
+
+Illustrated frames are decoded and cached once; only the current pixel size's gait rasters remain cached. Drawing and alpha hit testing use the same active frame. Pose transitions include both visible silhouettes in alpha hit testing. Existing sleep/occlusion suspension is retained. Source sprites, edits and prompts are in `artwork-src/claude-hoodie/motion-v3/` and `motion-v4/`, prepared using built-in image_gen with transparent backgrounds; small linework variations may remain from generation; detected name badges are re-typeset as Claude.
+
+![四分之三侧身步态预览](docs/hoodie-walk-preview.gif)
+
+Rebuild assets with `swift scripts/prepare_hoodie_art.swift` then `bash scripts/prepare_hoodie_motion.sh`; regenerate icons using the existing scripts. The source sheets, relaxed idle, derived frames and GIF retain CC BY-NC-SA 4.0, credit CrossPet / lokicorvus and CrossPet contributors, 上善无形 / ZipZipPipe. `bash Tests/run_skin_tests.sh` verifies both eight-frame cycles, matching canvases, transparent safety margins, pose transitions, stride phase and timer-independent speed.
+
+
+步态 v4：默认速度为 48 点/秒，完整循环约 1.2 秒。切帧后仅通过连通区域检测清除远离角色的相邻帧边角，保留完整身体、细节和抗锯齿。v5 新增另一只脚领先的后半周期，近侧花纹靴从前方移到后方，远侧脚迈到前方。v6 对换脚素材重新校色，并在解码缓存时统一蓝色和橙色的色相、饱和度；保持透明轮廓和明暗层次，避免换脚时突然变色。仍保留少量插画线条变化。处理细节见 `artwork-src/claude-hoodie/motion-v4/PROMPTS.md`；再生成入口为 `bash scripts/prepare_hoodie_motion.sh`。

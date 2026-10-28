@@ -37,9 +37,10 @@ cp Info.plist "$APP/Contents/"
 
 # SPM stores .process()'d resources in a side bundle. It must be copied INTO the
 # app as a bundle (not flattened): Bundle.module looks for a directory literally
-# named <Target>_<Target>.bundle under Contents/Resources.
-RES_BUNDLE=$(find .build -type d -name "$APP_NAME""_""$APP_NAME.bundle" 2>/dev/null | head -1)
-if [ -n "$RES_BUNDLE" ]; then
+# named <Target>_<Target>.bundle. Bundle.petResources resolves it inside
+# Contents/Resources before falling back to the SPM development path.
+RES_BUNDLE="$(dirname "$BIN")/${APP_NAME}_${APP_NAME}.bundle"
+if [ -d "$RES_BUNDLE" ]; then
     rm -rf "$APP/Contents/Resources/$APP_NAME""_""$APP_NAME.bundle"
     cp -R "$RES_BUNDLE" "$APP/Contents/Resources/"
 else

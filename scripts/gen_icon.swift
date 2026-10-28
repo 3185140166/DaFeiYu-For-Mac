@@ -7,7 +7,7 @@ import CoreGraphics
 
 let size = 1024
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-let source = root.appendingPathComponent("Sources/Resources/hoodie_stand.png")
+let source = root.appendingPathComponent("Sources/Resources/header.png")
 let outDir = root.appendingPathComponent("icon-src")
 try? FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
 let output = outDir.appendingPathComponent("AppIcon_1024.png")

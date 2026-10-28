@@ -7,7 +7,7 @@ enum BundledImage {
 
     static func image(_ name: String) -> NSImage? {
         if let hit = cache[name] { return hit }
-        guard let url = Bundle.module.url(forResource: name, withExtension: "png"),
+        guard let url = Bundle.petResources.url(forResource: name, withExtension: "png"),
               let image = NSImage(contentsOf: url) else { return nil }
         cache[name] = image
         return image

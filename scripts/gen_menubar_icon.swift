@@ -8,7 +8,7 @@ import AppKit
 import CoreGraphics
 
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-let source = root.appendingPathComponent("Sources/Resources/hoodie_stand.png")
+let source = root.appendingPathComponent("Sources/Resources/header.png")
 let output = root.appendingPathComponent("Sources/Resources/MenuBarIcon.png")
 
 guard let image = NSImage(contentsOf: source),

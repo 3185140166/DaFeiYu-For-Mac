@@ -36,3 +36,34 @@ The high-resolution edits are uniformly scaled to 640×640 for the app. Surround
 linework may differ slightly due to image generation. Original WebP sources above
 are retained unchanged. Rebuild originals with `swift scripts/prepare_hoodie_art.swift --original`.
 These edited sprites and derived icons retain CC BY-NC-SA 4.0 and the same credits.
+
+
+## Earlier front-facing walking rig (superseded, 2026-10-28)
+
+Sources/Pet/PetWalkAnimation.swift articulates the existing hand-refined standing
+sprite into an eight-frame gait in both directions, reusing its face and body.
+The runtime-derived frames and docs/hoodie-walk-preview.gif retain CC BY-NC-SA 4.0
+and the attribution above. No new model-generated artwork is used for this gait.
+
+
+## Current three-quarter walk and relaxed idle (2026-10-28)
+
+The current sprite pack uses motion-v3/idle-relaxed.png plus two 4×2 illustrated
+walk sheets, generated with built-in image_gen from this project's prior derivatives.
+Prompts and processing notes: motion-v3/PROMPTS.md. The original artwork and v2
+hand refinements remain unchanged for reference. Each direction is sliced into
+eight full-body frames with naturally lowered, counter-swinging arms. No frontal
+leg rig is used by the current implementation. Sources and all derived runtime
+sprites/icons/previews retain CC BY-NC-SA 4.0 with the attribution above.
+
+
+## Current alternating gait v4 (2026-10-28)
+
+motion-v4/walk-right-alternating.png is an image_gen edit of the v3 canonical sheet.
+The final pipeline explicitly articulates near/far legs on opposite half-cycles,
+produces 16 frames per direction, fixes depth ordering and derives both directions
+from one source. SpriteComponentCleanup.swift removes detached neighboring-tile
+fragments while retaining nearby details. Use scripts/prepare_hoodie_motion.sh;
+source prompts and integration notes are in motion-v4/PROMPTS.md.
+The artwork sources, layered gait derivatives and preview remain CC BY-NC-SA 4.0
+with the same CrossPet / 上善无形 / ZipZipPipe attribution.

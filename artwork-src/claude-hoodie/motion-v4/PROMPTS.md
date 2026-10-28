@@ -1,0 +1,16 @@
+# Alternating gait and fragment cleanup v4
+
+Date: 2026-10-28. Built-in image_gen edit with transparent_background=true.
+Source: motion-v3/walk-right-sheet.png. Selected output: walk-right-alternating.png.
+CrossPet / lokicorvus and CrossPet contributors; character design 上善无形 / ZipZipPipe.
+All artwork and derived frames remain CC BY-NC-SA 4.0.
+
+## Final image edit prompt
+
+Use case: precise-object-edit / production animation. EDIT this 4-column 2-row right-facing chibi whale-girl sprite sheet. Preserve the exact blue-haired character, cream Claude hoodie, orange skirt and boots, head/face, relaxed down-swinging arms and three-quarter SCREEN-RIGHT view. REPLACE THE LOWER-BODY MOTION with a clearly ALTERNATING TWO-LEG normal walking cycle. The existing sheet incorrectly repeats the same lead leg; fix that. Eight frames, read row-major: 1 NEAR leg forward heel contact, FAR leg stretched backward toe on ground. 2 NEAR leg planted supporting weight, FAR knee bending and lifting behind. 3 FAR leg swings forward PAST the planted near leg (both boots visibly separate). 4 FAR foot lands ahead, NEAR foot pushes off behind. 5 FAR leg now fully forward on ground, NEAR leg clearly stretched BACKWARD: this is the opposite-leg contact pose from frame 1, NOT a repeat of frame 1. 6 FAR leg planted supporting weight, NEAR knee bending/lifting behind. 7 NEAR leg swings forward past the planted FAR leg. 8 NEAR foot approaches landing ahead while FAR foot starts pushing backward, looping to 1. Make the foreground boot obviously travel FORWARD then BACKWARD across the cycle, not remain in front. Keep both boots visible, separate and connected anatomically to their own hips. Use modest natural steps, not running, kicking or hopping. Subtle consistent arm counter-swing. Keep exactly the same head size, angle, face, body scale and fixed face position across every cell, consistent ground baseline. Four columns x two rows on a wide 2:1 transparent sheet, ideally 2048x1024. Each character fully inside its own square cell with at least 8% blank space ON ALL FOUR SIDES, including tail tips, hair tuft and boots. NO overlapping neighboring tiles, no fragments in gutters, no grid, no numbers, no floor, shadow, watermark or captions. Actual transparent alpha. Exact badge text Claude. Only the walking limb poses should change; retain the reference's costume and clean anime cel shading.
+
+## Final integration
+
+The final pipeline preserves eight complete illustrated poses per direction. A previous attempt to extract and articulate boots erased parts of the skirt and thighs; that processing has been removed. No limb pixels are erased or recomposited. Physical foot alternation is still limited by the illustrated source. Both directions derive from the same canonical sheet; name badges are re-typeset as Claude.
+
+scripts/prepare_hoodie_motion.sh slices/normalizes the sheet, then builds and runs scripts/refine_hoodie_gait.swift with shared SpriteComponentCleanup.swift. Connected alpha-component cleanup rejects distant neighboring-tile fragments and preserves nearby details/antialiasing. Original v3 sheets are kept for reference. Runtime default speed: 48 points/s, full cycle: 1.2 seconds, distance-driven phase unchanged.

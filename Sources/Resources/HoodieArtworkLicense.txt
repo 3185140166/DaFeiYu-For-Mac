@@ -69,3 +69,33 @@ These edited sprites and derived icons retain CC BY-NC-SA 4.0 and the same credi
 「Claude」「GPT」「ChatGPT」「Codex」「DeepSeek」「Gemini」「GLM」「Qwen」「千问」是各自公司的商标，本项目为非官方同人项目，与这些公司无关。
 
 如果你是原作者并且对使用方式有异议，请在 GitHub 提 Issue，我们会第一时间修改或移除。
+
+
+Three-quarter walk adaptation (2026-10-28): the relaxed front idle and two eight-frame
+side-facing sheets in artwork-src/claude-hoodie/motion-v3/ were edited with built-in
+image_gen from the earlier licensed hoodie derivative. The sheets are sliced,
+normalized and face-aligned to 896×640. Near-transparent saturated fringe is removed
+and an outer transparent safety gutter retained. The runtime uses these illustrated
+frames and a short crossfade to the front pose; the previous frontal leg rig is
+superseded. docs/hoodie-walk-preview.gif is exported from the actual frames.
+Sources, frames, derived icons and previews retain CC BY-NC-SA 4.0 and the credits above.
+Full generation prompts: artwork-src/claude-hoodie/motion-v3/PROMPTS.md.
+
+
+Alternating gait v4 (2026-10-28): motion-v4/walk-right-alternating.png was edited
+with built-in image_gen from the earlier sheet. Final sprites preserve eight complete illustrated poses per direction, with
+connected-component fragment removal only. The earlier extracted-leg processing
+was removed because it damaged the skirt and thighs. Prompts and processing
+notes: artwork-src/claude-hoodie/motion-v4/PROMPTS.md. These derivatives retain
+CC BY-NC-SA 4.0 and the attribution above. Runtime default speed is 48 points/s;
+a full two-step cycle lasts about 1.2 seconds.
+
+Opposite footfall v5 (2026-10-28): complete opposite-leg contact and four-pose
+half cycle edited with built-in image_gen from the licensed v4 artwork.
+Sources and processing notes: artwork-src/claude-hoodie/motion-v5/PROMPTS.md.
+All derivatives retain CC BY-NC-SA 4.0 and the attribution above.
+
+Color consistency v6 (2026-10-28): image_gen color edits of v5 complete poses,
+followed by cached hue/saturation matching in the renderer. Prompts and selected
+source: artwork-src/claude-hoodie/motion-v6/PROMPTS.md. Attribution and
+CC BY-NC-SA 4.0 remain unchanged.

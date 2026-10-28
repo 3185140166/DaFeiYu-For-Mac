@@ -20,7 +20,7 @@ final class DuckSound {
         prepared = true
         for name in ["duck1", "duck2", "duck3"] {
             for _ in 0..<2 {
-                guard let url = Bundle.module.url(forResource: name, withExtension: "wav"),
+                guard let url = Bundle.petResources.url(forResource: name, withExtension: "wav"),
                       let player = try? AVAudioPlayer(contentsOf: url) else { continue }
                 player.prepareToPlay()
                 players.append(player)

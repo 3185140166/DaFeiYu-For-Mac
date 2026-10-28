@@ -55,11 +55,11 @@ final class PetController: NSObject, ObservableObject {
 
     // Wandering — same numbers as the Android wander loop.
     private var detachedDuringDrag = false
-    private var wanderTargetX: CGFloat = -1
+    private var wanderTargetX: CGFloat?
+    private var lastWanderTick: CFTimeInterval?
     private var wanderX: CGFloat = 0
     private var wanderWaitUntil: CFTimeInterval = 0
     private let wanderMargin: CGFloat = 14
-    private let wanderStep: CGFloat = 4
 
     // Random expressions — she changes face on her own now and then.
     private var nextFaceChangeAt: CFTimeInterval = 0
@@ -180,7 +180,7 @@ final class PetController: NSObject, ObservableObject {
         let frame = clamped(origin: origin, size: size)
         panel.setFrame(NSRect(origin: frame, size: size), display: true)
         view.invalidate()
-        wanderTargetX = -1
+        wanderTargetX = nil
     }
 
     private func applySkin() {
@@ -252,7 +252,7 @@ final class PetController: NSObject, ObservableObject {
         let x = onRight ? full.maxX - size.width : full.minX
         let y = clamped(origin: NSPoint(x: x, y: panel.frame.origin.y), size: size).y
         panel.setFrame(NSRect(x: x, y: y, width: size.width, height: size.height), display: true)
-        wanderTargetX = -1
+        wanderTargetX = nil
         if persist {
             AppSettings.isPerched = true
             AppSettings.perchedEdge = onRight ? 1 : 0
@@ -300,7 +300,7 @@ final class PetController: NSObject, ObservableObject {
         if !screenAsleep && !sessionInactive {
             let now = CACurrentMediaTime()
             updatePointerState()     // hover: also her may have wandered under a still pointer
-            updateWander()
+            updateWander(now: now)
             updateRandomFace(now: now)
             updateBubble(now: now)
             view?.tick(now: now)
@@ -536,41 +536,44 @@ final class PetController: NSObject, ObservableObject {
 
     // MARK: - Idle wandering
 
-    private func updateWander() {
+    private func updateWander(now: CFTimeInterval) {
+        let elapsed = now - (lastWanderTick ?? now)
+        lastWanderTick = now
         guard let panel, let view else { return }
-        guard wanderOn, isRunning else { view.walking = false; return }
-        // The pointer resting on her (or a fresh touch / drag / perch) freezes her.
-        guard !isPerched, !view.isBeingDragged, !isHoveringHer, view.secondsSinceTouch > 5 else {
+        guard wanderOn, isRunning, !isPerched, !view.isBeingDragged,
+              !isHoveringHer, view.secondsSinceTouch > 5 else {
             view.walking = false
-            wanderTargetX = -1
+            wanderTargetX = nil
             return
         }
-        let now = CACurrentMediaTime()
-        if now < wanderWaitUntil {
-            view.walking = false
-            return
-        }
+        if now < wanderWaitUntil { view.walking = false; return }
         let full = screenFrame()
-        let width = panel.frame.width
-        if wanderTargetX < 0 {
+        if wanderTargetX == nil {
             wanderX = panel.frame.origin.x
             let low = full.minX + wanderMargin
-            let high = max(low + 1, full.maxX - width - wanderMargin)
+            let high = full.maxX - panel.frame.width - wanderMargin
+            guard high > low else { view.walking = false; return }
             wanderTargetX = CGFloat.random(in: low...high)
             wanderWaitUntil = now + 0.8
-            return
-        }
-        let d = wanderTargetX - wanderX
-        if abs(d) < 3 {
-            wanderX = wanderTargetX
-            wanderTargetX = -1
-            wanderWaitUntil = now + 1.2 + Double.random(in: 0...2.4)
             view.walking = false
             return
         }
-        wanderX += (d < 0 ? -1 : 1) * min(wanderStep, abs(d))
+        guard let target = wanderTargetX else { return }
+        let remaining = target - wanderX
+        if abs(remaining) < 1 {
+            panel.setFrameOrigin(NSPoint(x: target.rounded(), y: panel.frame.origin.y))
+            wanderTargetX = nil
+            wanderWaitUntil = now + Double.random(in: 1.2...3.6)
+            view.walking = false
+            return
+        }
+        let delta = PetWalkMotion.step(remaining: remaining, height: CGFloat(hoverHeight), elapsed: elapsed)
+        let previousX = panel.frame.origin.x
+        wanderX += delta
         panel.setFrameOrigin(NSPoint(x: wanderX.rounded(), y: panel.frame.origin.y))
+        view.walkingLeft = delta < 0
         view.walking = true
+        view.advanceWalk(by: panel.frame.origin.x - previousX)
     }
 
     // MARK: - Expressions & skin
@@ -665,7 +668,7 @@ extension PetController: PetInteractionDelegate {
             return
         }
         panel.setFrameOrigin(clamped(origin: windowOrigin, size: panel.frame.size))
-        wanderTargetX = -1
+        wanderTargetX = nil
     }
 
     func petViewDidBeginDrag(_ view: PetView) {
@@ -673,7 +676,7 @@ extension PetController: PetInteractionDelegate {
         balanceDismissTask?.cancel()
         bubble.hide()
         detachedDuringDrag = false
-        wanderTargetX = -1
+        wanderTargetX = nil
     }
 
     func petViewDidEndDrag(_ view: PetView, at screenPoint: NSPoint) {

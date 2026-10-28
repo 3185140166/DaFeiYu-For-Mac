@@ -242,8 +242,8 @@ final class LocalizationManager: ObservableObject {
 
         // ---------------------------------------------------------------- Skin section
         .skinSection: [.english: "Skin", .simplifiedChinese: "皮肤", .traditionalChinese: "皮膚"],
-        .skinHint: [.english: "Three looks: hoodie has idle + happy; original skins have 6 expressions each", .simplifiedChinese: "三套形象：卫衣有待机和开心两种姿态，原皮肤各有 6 个表情",
-                    .traditionalChinese: "三套形象：衛衣有待機和開心兩種姿態，原皮膚各有 6 個表情"],
+        .skinHint: [.english: "Three looks: hoodie has idle, happy and a walking cycle; original skins have 6 expressions each", .simplifiedChinese: "三套形象：卫衣有待机、开心与走路动画，原皮肤各有 6 个表情",
+                    .traditionalChinese: "三套形象：衛衣有待機、開心與走路動畫，原皮膚各有 6 個表情"],
         .tapToSwitch: [.english: "Click to switch", .simplifiedChinese: "点击切换", .traditionalChinese: "點擊切換"],
 
         // ---------------------------------------------------------------- Actions

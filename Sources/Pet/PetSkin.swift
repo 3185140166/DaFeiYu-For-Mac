@@ -38,7 +38,7 @@ struct PetSkin {
                 headX0: 35.0 / 1191.0, headX1: 985.0 / 1191.0,
                 headY0: 30.0 / 1514.0, headY1: 800.0 / 1514.0),
         PetSkin(index: 2, nameKey: .skinHoodie, prefix: "hoodie",
-                headX0: 0.020, headX1: 0.880, headY0: 0.000, headY1: 0.580,
+                headX0: (128.0 + 12.8) / 896.0, headX1: (128.0 + 563.2) / 896.0, headY0: 0.000, headY1: 0.580,
                 expressionNames: ["happy"]),
     ]
 
