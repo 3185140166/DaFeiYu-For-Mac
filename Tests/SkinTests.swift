@@ -45,9 +45,9 @@ extension Bundle {
         check(cleaned.removedPixels >= 28 && cleanedBitmap.alpha(x: 3, y: 30) == 0 && cleanedBitmap.alpha(x: 45, y: 30) > 240, "Detached tile fragment was not removed")
         let rightFrames = PetArtworkStore.shared.walkFrames(skin: hoodie, facingLeft: false)
         let leftFrames = PetArtworkStore.shared.walkFrames(skin: hoodie, facingLeft: true)
-        check(rightFrames.count == 8 && leftFrames.count == 8, "Missing walk directions or frames")
+        check(rightFrames.count == PetWalkMotion.frameCount && leftFrames.count == PetWalkMotion.frameCount, "Missing walk directions or frames")
         func png(_ image: CGImage) -> Data { NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])! }
-        check(Set(rightFrames.map(png)).count == 8, "Gait frames do not advance through distinct leg poses")
+        check(Set(rightFrames.map(png)).count == PetWalkMotion.frameCount, "Gait frames do not advance through distinct leg poses")
         for frame in rightFrames + leftFrames {
             check(frame.width == 896 && frame.height == 640, "Walk frame changed canvas")
             let alpha = PetBitmap(source: frame, pixelWidth: 896, pixelHeight: 640)!
@@ -64,6 +64,38 @@ extension Bundle {
                 minWarmWidth = min(minWarmWidth, warm)
             }
             check(minWarmWidth >= 12, "Horizontal hole through hem/thighs")
+            // Flood from the skirt through the visible lower body. A detached
+            // shoe or skin strip must not pass merely because other leg exists.
+            let w = frame.width, top = 510, bottom = 630, x0 = 270, x1 = 580
+            var visited = [Bool](repeating: false, count: w * frame.height)
+            var queue: [Int] = []
+            for x in x0..<x1 where data[(top * w + x) * 4 + 3] > 80 {
+                let pixel = top * w + x; visited[pixel] = true; queue.append(pixel)
+            }
+            var head = 0
+            while head < queue.count {
+                let pixel = queue[head]; head += 1
+                let x = pixel % w, y = pixel / w
+                for yy in max(top, y - 1)...min(bottom - 1, y + 1) {
+                    for xx in max(x0, x - 1)...min(x1 - 1, x + 1) {
+                        let next = yy * w + xx
+                        if !visited[next] && data[next * 4 + 3] > 80 {
+                            visited[next] = true; queue.append(next)
+                        }
+                    }
+                }
+            }
+            var disconnected = 0, exposedSkin = 0
+            for y in 540..<bottom { for x in x0..<x1 {
+                let pixel = y * w + x, i = pixel * 4
+                if data[i + 3] > 200 && !visited[pixel] { disconnected += 1 }
+                if y < 580 && data[i + 3] > 240 && data[i] > 240 && data[i + 1] > 190 && data[i + 1] < 240 && data[i + 2] > 160 && data[i + 2] < 225 {
+                    exposedSkin += 1
+                }
+            } }
+            check(disconnected < 8, "Lower limb/shoe disconnected from skirt")
+            check(exposedSkin > 250, "Shoes conceal the visible legs")
+
 
         }
         // Compare both illustrated half cycles so the opposite footfall cannot
@@ -95,20 +127,38 @@ extension Bundle {
             check(abs(palette.1 - referenceOrange) < 0.065, "Costume saturation jumps when switching feet")
         }
 
-        let referencePalette = PetWalkPalette.samples(rightFrames[0], PetWalkPalette.rgba(rightFrames[0]))
-        for (index, frame) in rightFrames.enumerated() where index >= 4 {
-            let palette = PetWalkPalette.samples(frame, PetWalkPalette.rgba(frame))
-            for family in 0..<2 {
-                check(abs(palette[family].hue - referencePalette[family].hue) < 0.02, "Walk color hue jumps")
-            }
-            let file = Bundle.module.url(forResource: "hoodie_walk_right_\(index)", withExtension: "png")!
-            let raw = NSImage(contentsOf: file)!.cgImage(forProposedRect: nil, context: nil, hints: nil)!
-            let original = PetWalkPalette.rgba(raw), corrected = PetWalkPalette.rgba(frame)
-            check(stride(from: 3, to: original.count, by: 4).allSatisfy {
-                original[$0] == corrected[$0]
-            }, "Palette correction changed silhouette transparency")
+        // The face, hair and costume are literally the same pixels in every
+        // rendered frame, not independently regenerated full-body poses.
+        let firstPixels = SpriteComponentCleanup.rgba(rightFrames[0])
+        for frame in rightFrames.dropFirst() {
+            let pixels = SpriteComponentCleanup.rgba(frame)
+            check(pixels[0..<(480 * 896 * 4)].elementsEqual(firstPixels[0..<(480 * 896 * 4)]), "Pocket torso changes between footfalls")
         }
-        print("PASS: half-cycle hair/costume saturation and hue continuity; correction preserves every alpha pixel")
+        print("PASS: hands-in-pocket torso stays pixel-identical throughout the walk")
+        // Bound adjacent rendered lower-body changes, including the wrap.
+        // Count changed opaque pixels: swapped contact poses cause a large spike.
+        var changedCounts: [Int] = []
+        for i in rightFrames.indices {
+            let a = SpriteComponentCleanup.rgba(rightFrames[i])
+            let b = SpriteComponentCleanup.rgba(rightFrames[(i + 1) % rightFrames.count])
+            var changed = 0
+            for pixel in (530 * 896)..<(630 * 896) {
+                let offset = pixel * 4
+                if abs(Int(a[offset + 3]) - Int(b[offset + 3])) > 100 { changed += 1 }
+            }
+            changedCounts.append(changed)
+        }
+        let typicalChange = changedCounts.sorted()[changedCounts.count / 2]
+        check(Double(changedCounts.max()!) < Double(typicalChange) * 2.25,
+              "Rendered foot silhouette has an isolated jump between poses")
+        print("PASS: identical pocket-torso pixels; bounded adjacent foot motion including cycle wrap")
+        for far in [false, true] {
+            let start = PetWalkMotion.footPose(phase: 0, far: far)
+            let wrap = PetWalkMotion.footPose(phase: 1 - 0.00001, far: far)
+            check(abs(start.x - wrap.x) < 0.01 && abs(start.lift - wrap.lift) < 0.01, "Foot trajectory jumps at wrap")
+            let passing = PetWalkMotion.footPose(phase: far ? 0.3 : 0.8, far: far)
+            check(abs(passing.x) < 0.01 && passing.lift > 14, "Swing leg never passes beneath hip")
+        }
 
         func faceCenter(_ image: CGImage) -> CGPoint {
             let bitmap = PetBitmap(source: image, pixelWidth: 896, pixelHeight: 640)!
@@ -130,25 +180,25 @@ extension Bundle {
         let faces = (rightFrames + leftFrames).map(faceCenter)
         check(faces.map(\.x).max()! - faces.map(\.x).min()! < 12, "Horizontal head jitter")
         check(faces.map(\.y).max()! - faces.map(\.y).min()! < 12, "Vertical head jitter")
-        check(PetWalkRenderer.resourceName(frame: 9, facingLeft: true) == "hoodie_walk_left_1", "Frame index does not wrap")
+        check(PetWalkRenderer.resourceName(frame: 25, facingLeft: true) == "hoodie_walk_left_1", "Frame index does not wrap")
         check(PetWalkMotion.frame(distance: 0, height: 240) == 0, "Bad phase start")
-        check(PetWalkMotion.frame(distance: 57.6, height: 240) == 0, "Stride does not loop")
-        check(PetWalkMotion.frame(distance: 7.2, height: 240) == 1, "Phase not tied to travel distance")
+        check(PetWalkMotion.frame(distance: 34.56, height: 240) == 0, "Stride does not loop")
+        check(PetWalkMotion.frame(distance: 2.4, height: 240) == 1, "Phase not tied to travel distance")
         let at60 = (0..<60).reduce(CGFloat.zero) { distance, _ in distance + PetWalkMotion.step(remaining: 1000, height: 240, elapsed: 1.0 / 60.0) }
         let at30 = (0..<30).reduce(CGFloat.zero) { distance, _ in distance + PetWalkMotion.step(remaining: 1000, height: 240, elapsed: 1.0 / 30.0) }
-        check(abs(at60 - at30) < 0.001 && abs(at60 - 48) < 0.001, "Walking speed depends on timer frequency")
+        check(abs(at60 - at30) < 0.001 && abs(at60 - 28.8) < 0.001, "Walking speed depends on timer frequency")
         check(PetWalkMotion.step(remaining: -1, height: 240, elapsed: 1) == -1, "Movement overshoots destination")
-        check(PetWalkMotion.step(remaining: 1000, height: 240, elapsed: 20) <= 2.401, "Wake-up jump")
+        check(PetWalkMotion.step(remaining: 1000, height: 240, elapsed: 20) <= 1.441, "Wake-up jump")
         view.mode = .hover
         view.walking = true
-        view.advanceWalk(by: 7.2)
+        view.advanceWalk(by: 2.4)
         check(view.walkFrame == 1 && view.isTransitioningPose, "View did not advance gait or transition")
         view.walking = false
         view.walking = true
         check(view.walkFrame == 0, "New walk did not restart gait")
         view.walking = false
         let preview = URL(fileURLWithPath: "/tmp/hoodie-walk-preview.gif")
-        let gif = CGImageDestinationCreateWithURL(preview as CFURL, "com.compuserve.gif" as CFString, 16, nil)!
+        let gif = CGImageDestinationCreateWithURL(preview as CFURL, "com.compuserve.gif" as CFString, PetWalkMotion.frameCount * 2, nil)!
         CGImageDestinationSetProperties(gif, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
         for frame in rightFrames + leftFrames {
             let small = PetBitmap(source: frame, pixelWidth: 336, pixelHeight: 240)!
@@ -159,7 +209,7 @@ extension Bundle {
             try png(frame).write(to: URL(fileURLWithPath: "/tmp/hoodie-walk-frame-\(index).png"))
         }
         try png(leftFrames[2]).write(to: URL(fileURLWithPath: "/tmp/hoodie-walk-left.png"))
-        print("PASS: eight intact full-body poses, slow gait, unclipped feet/tail, both directions, pose transitions, distance-based phase, timer-independent speed, no overshoot or wake-up teleport")
+        print("PASS: 24 continuous layered poses, slow gait, unclipped feet/tail, both directions, pose transitions, distance-based phase, timer-independent speed, no overshoot or wake-up teleport")
         let suite = "BaifanYuSkinTests." + UUID().uuidString
         let defaults = UserDefaults(suiteName: suite)!
         defer { defaults.removePersistentDomain(forName: suite) }

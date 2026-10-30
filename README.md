@@ -298,17 +298,16 @@ Skin validation / 皮肤验证：构建应用后执行 `bash Tests/run_skin_test
 
 ### Hoodie walking animation / 卫衣走路动画
 
-当前步态使用完整的四分之三侧身立绘，左右各八帧；不再剪切或重新拼接腿部，避免裙摆、大腿出现透明断层。停止后以 0.16 秒过渡回正面放松姿态，保留点击时的开心举手。
+v7 使用同一张完整上半身、两条始终保留身份的腿，以及连续的落脚轨迹，离线生成左右各 24 帧。每条腿依次完成落地、承重后移、抬脚、经过身体下方、向前落地；双腿相差半个周期。循环首尾位置连续，取代两组“脚已分开”的人物姿态直接交换。支撑脚保持地面高度，摆动脚抬高后再经过支撑脚。
 
-步态按实际移动距离推进，移动按时间计算：默认约 48 pt/s，随角色大小调整并限制在 28–72 pt/s。悬停、拖动、扒边、关闭自动溜达或到达目标都会停止迈腿。其他皮肤保留原立绘和身体起伏。
+头部、卫衣、裙摆和尾巴在整个周期共用同一张图；v12 改为双手自然插进卫衣口袋，袖口接入口袋两侧，整个走路周期使用固定的插兜姿态，头部像素及整套配色保持稳定；靴子共用同一纹理，不再对每张人物姿态单独校色。v8 将高筒靴改为低帮鞋；v9 参照待机立绘将腿型加粗、缩短，加入柔和明暗，缩小步幅并以更慢的小步行走；v13 进一步采用静态立绘风格的奶油色软边鞋口、橙色圆头小花鞋，保留圆润大腿；v14 降低蓬松鞋口并拆分后鞋口、脚踝和前鞋沿的遮挡，让小腿清楚接入鞋内；v15 再次收短腿脚总高度，膝盖按髋部与脚踝的中间位置弯曲，降低抬脚幅度并匹配更小、更慢的步伐；v10 从裙摆色带识别固定髋部中心，避免以偏向前方的脸部位置定位双腿；腿根固定在裙摆后方，以连续的大腿—膝盖—脚踝轮廓接入鞋口。裙摆不会被按颜色抠除。离线清理靴子外的生成光晕，输出保留透明边距。当前是简化的二维分层步态，未模拟完整的三维膝盖、脚踝与手臂骨骼。
 
-素材归一化到 896×640 透明画布，左右步态与正面立绘对齐脸部位置、共用缩放比例。加宽透明画布以容纳不同朝向的尾巴，实际人物高度仍由原滑块控制；透明处继续点击穿透。扒边使用正面头部裁剪，不使用走路图。脚底、尾巴均留出透明边距。
+步态按实际移动距离推进；默认约 29 pt/s，完整周期约 1.2 秒。悬停、拖动、扒边或到达目标时停止迈步，以 0.16 秒过渡回正面姿态。透明区域继续点击穿透，其他皮肤保持原有行为。
 
-Illustrated frames are decoded and cached once; only the current pixel size's gait rasters remain cached. Drawing and alpha hit testing use the same active frame. Pose transitions include both visible silhouettes in alpha hit testing. Existing sleep/occlusion suspension is retained. Source sprites, edits and prompts are in `artwork-src/claude-hoodie/motion-v3/` and `motion-v4/`, prepared using built-in image_gen with transparent backgrounds; small linework variations may remain from generation; detected name badges are re-typeset as Claude.
+素材生成入口：`bash scripts/prepare_hoodie_motion.sh`，使用 `scripts/prepare_hoodie_rig.swift` 与运行时共享的 `PetWalkMotion.footPose`。资源归一化为 896×640，24 帧仅在加载时解码，当前尺寸的栅格缓存可复用。
 
-![四分之三侧身步态预览](docs/hoodie-walk-preview.gif)
+验证：`bash Tests/run_skin_tests.sh` 检查左右方向、所有帧、透明边距、裙摆与腿部连通、插兜上半身逐像素稳定、相邻脚部轮廓变化及循环接缝，并导出与应用使用相同帧的 GIF。
 
-Rebuild assets with `swift scripts/prepare_hoodie_art.swift` then `bash scripts/prepare_hoodie_motion.sh`; regenerate icons using the existing scripts. The source sheets, relaxed idle, derived frames and GIF retain CC BY-NC-SA 4.0, credit CrossPet / lokicorvus and CrossPet contributors, 上善无形 / ZipZipPipe. `bash Tests/run_skin_tests.sh` verifies both eight-frame cycles, matching canvases, transparent safety margins, pose transitions, stride phase and timer-independent speed.
+![连续分层步态预览](docs/hoodie-walk-preview.gif)
 
-
-步态 v4：默认速度为 48 点/秒，完整循环约 1.2 秒。切帧后仅通过连通区域检测清除远离角色的相邻帧边角，保留完整身体、细节和抗锯齿。v5 新增另一只脚领先的后半周期，近侧花纹靴从前方移到后方，远侧脚迈到前方。v6 对换脚素材重新校色，并在解码缓存时统一蓝色和橙色的色相、饱和度；保持透明轮廓和明暗层次，避免换脚时突然变色。仍保留少量插画线条变化。处理细节见 `artwork-src/claude-hoodie/motion-v4/PROMPTS.md`；再生成入口为 `bash scripts/prepare_hoodie_motion.sh`。
+素材及衍生图标保留 CC BY-NC-SA 4.0，署名 CrossPet / lokicorvus and CrossPet contributors、上善无形 / ZipZipPipe。源图与提示词位于 `artwork-src/claude-hoodie/motion-v7/`、`motion-v8/` 、`motion-v12/` 和 `motion-v13/`；v3–v6 保留为历史来源，不再用于当前走路循环。

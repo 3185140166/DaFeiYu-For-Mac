@@ -99,3 +99,26 @@ Color consistency v6 (2026-10-28): image_gen color edits of v5 complete poses,
 followed by cached hue/saturation matching in the renderer. Prompts and selected
 source: artwork-src/claude-hoodie/motion-v6/PROMPTS.md. Attribution and
 CC BY-NC-SA 4.0 remain unchanged.
+
+Continuous layered gait v7 (2026-10-29): fixed complete torso and isolated boot
+were edited from the licensed hoodie reference with built-in image_gen.
+The native renderer draws articulated thighs and two persistent limb trajectories
+to export 24 poses per direction. No skirt/thigh pixels are extracted by color.
+Generated external boot glow is removed by alpha masking at preparation time.
+Sources/prompts: artwork-src/claude-hoodie/motion-v7/PROMPTS.md.
+Attribution and CC BY-NC-SA 4.0 remain unchanged.
+
+Visible legs v8 (2026-10-29): low shoe edited with built-in image_gen from
+v7 licensed boot art. Native thigh/knee/calf geometry now joins the fixed hem
+to the ankle opening. Source/prompts: artwork-src/claude-hoodie/motion-v8/.
+CC BY-NC-SA 4.0 and all attribution remain unchanged.
+
+Pocket walking v12 (2026-10-30): relaxed hands-in-kangaroo-pocket torso edited
+with built-in image_gen from the licensed v7 torso. Source and prompt:
+artwork-src/claude-hoodie/motion-v12/. One fixed illustration replaces arm
+deformation across the gait. CC BY-NC-SA 4.0 and attribution remain unchanged.
+
+Idle-style footwear v13 (2026-10-30): soft cream flower cuff and rounded
+orange shoe edited with built-in image_gen using hoodie_face_happy.png as
+reference. Source/prompts: artwork-src/claude-hoodie/motion-v13/.
+All attribution and CC BY-NC-SA 4.0 remain unchanged.
