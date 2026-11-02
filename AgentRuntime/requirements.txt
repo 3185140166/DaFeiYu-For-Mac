@@ -1,0 +1,3 @@
+# The default DeepSeek Harness bridge uses the Python standard library.
+# The installed official DSH application or CLI provides the actual agent runtime.
+# requirements-legacy.txt is only needed to resume old Deep Agents tasks.

@@ -50,6 +50,11 @@ enum AppSettings {
         set { d.set(newValue, forKey: Key.soundOn) }
     }
 
+    static var quietMode: Bool {
+        get { d.bool(forKey: "whalepet.quiet_mode") }
+        set { d.set(newValue, forKey: "whalepet.quiet_mode") }
+    }
+
     static var wanderOn: Bool {
         get { d.object(forKey: Key.wanderOn) as? Bool ?? true }
         set { d.set(newValue, forKey: Key.wanderOn) }

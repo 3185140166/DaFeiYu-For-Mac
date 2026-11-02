@@ -51,11 +51,17 @@ if [ -f "Sources/Resources/AppIcon.icns" ]; then
     cp "Sources/Resources/AppIcon.icns" "$APP/Contents/Resources/"
 fi
 
+# The optional Python backend is separate from the offline pet.
+mkdir -p "$APP/Contents/Resources/AgentRuntime"
+cp AgentRuntime/*.py AgentRuntime/*.mjs AgentRuntime/setup.sh AgentRuntime/requirements*.txt "$APP/Contents/Resources/AgentRuntime/"
+
 # Ship the upstream MIT license + notice inside the bundle.
 [ -f LICENSE ] && cp LICENSE "$APP/Contents/Resources/LICENSE.txt"
 
 echo "==> Signing (ad-hoc)..."
-codesign --force --deep --sign - "$APP"
+# A persistent signing identity keeps Keychain authorization stable across rebuilds.
+# Without a certificate, ad-hoc builds may need authorization again after an update.
+codesign --force --deep --sign "${CODE_SIGN_IDENTITY:--}" "$APP"
 
 echo "==> Done: $APP"
 echo "    open \"$APP\"   — 白饭鱼 floats on your desktop, her icon sits in the menu bar."

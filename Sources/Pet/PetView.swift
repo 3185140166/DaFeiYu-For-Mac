@@ -186,7 +186,7 @@ final class PetView: NSView {
     @discardableResult
     func tick(now: CFTimeInterval) -> Bool {
         if startTime == 0 { startTime = now }
-        if now - lastFrameTime >= frameInterval {
+        if now - lastFrameTime >= frameInterval * 0.9 {
             lastFrameTime = now
             invalidate()
             return true

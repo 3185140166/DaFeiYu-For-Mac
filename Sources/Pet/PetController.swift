@@ -33,6 +33,19 @@ final class PetController: NSObject, ObservableObject {
     @Published var randomFace: Bool {
         didSet { AppSettings.randomFace = randomFace }
     }
+    @Published var quietMode: Bool {
+        didSet {
+            AppSettings.quietMode = quietMode
+            if quietMode {
+                bubble.hide()
+                balanceQueryTask?.cancel()
+                balanceDismissTask?.cancel()
+                balanceBubbleUntil = 0
+                view?.walking = false
+                wanderTargetX = nil
+            }
+        }
+    }
     @Published var skinIndex: Int {
         didSet { AppSettings.skinIndex = skinIndex; applySkin() }
     }
@@ -82,6 +95,7 @@ final class PetController: NSObject, ObservableObject {
         hoverHeight = AppSettings.hoverHeight
         perchWidth = AppSettings.perchWidth
         amplitude = AppSettings.amplitude
+        quietMode = AppSettings.quietMode
         soundOn = AppSettings.soundOn
         wanderOn = AppSettings.wanderOn
         randomFace = AppSettings.randomFace
@@ -152,6 +166,7 @@ final class PetController: NSObject, ObservableObject {
         balanceDismissTask?.cancel()
         balanceBubbleUntil = 0
         stopFrameTimer()
+        AgentTaskWindowController.shared.hide()
         bubble.hide()
         setHovering(false)
         panel?.orderOut(nil)
@@ -164,6 +179,11 @@ final class PetController: NSObject, ObservableObject {
     }
 
     func toggle() { isRunning ? hide() : show() }
+
+    var taskBubbleAnchor: (frame: NSRect, screen: NSScreen?)? {
+        guard isRunning, let panel, let view else { return nil }
+        return (panel.convertToScreen(view.convert(view.destinationRect(), to: nil)), panel.screen)
+    }
 
     // MARK: - Sizes / layout
 
@@ -271,8 +291,10 @@ final class PetController: NSObject, ObservableObject {
     // MARK: - Frame loop & power saving
 
     private func startFrameTimer() {
-        guard frameTimer == nil else { return }
-        let timer = Timer(timeInterval: 1.0 / 60.0, target: self, selector: #selector(frameTick), userInfo: nil, repeats: true)
+        let interval = view?.frameInterval ?? 1.0 / 30.0
+        if let frameTimer, abs(frameTimer.timeInterval - interval) < 0.001 { return }
+        stopFrameTimer()
+        let timer = Timer(timeInterval: interval, target: self, selector: #selector(frameTick), userInfo: nil, repeats: true)
         timer.tolerance = 0.004
         RunLoop.main.add(timer, forMode: .common)
         frameTimer = timer
@@ -281,6 +303,7 @@ final class PetController: NSObject, ObservableObject {
     private func stopFrameTimer() {
         frameTimer?.invalidate()
         frameTimer = nil
+        lastWanderTick = nil
     }
 
     /// Rendering really stops when nobody can see her — the Android app's third
@@ -297,6 +320,7 @@ final class PetController: NSObject, ObservableObject {
 
     @objc private func frameTick() {
         guard isRunning, panel != nil, view != nil else { return }
+        startFrameTimer() // Refresh the cadence when entering or leaving the screen edge.
         if !screenAsleep && !sessionInactive {
             let now = CACurrentMediaTime()
             updatePointerState()     // hover: also her may have wandered under a still pointer
@@ -304,6 +328,7 @@ final class PetController: NSObject, ObservableObject {
             updateRandomFace(now: now)
             updateBubble(now: now)
             view?.tick(now: now)
+            AgentTaskWindowController.shared.followPet()
         }
     }
 
@@ -330,7 +355,7 @@ final class PetController: NSObject, ObservableObject {
     @objc private func occlusionChanged() { updateAnimationState() }
     @objc private func screensSlept() { screenAsleep = true; updateAnimationState() }
     @objc private func screensWoke() { screenAsleep = false; updateAnimationState() }
-    @objc private func sessionResigned() { sessionInactive = true; updateAnimationState() }
+    @objc private func sessionResigned() { ChatKeychain.clearCache(); sessionInactive = true; updateAnimationState() }
     @objc private func sessionBecameActive() { sessionInactive = false; updateAnimationState() }
 
     // MARK: - Click-through on transparent pixels
@@ -392,7 +417,7 @@ final class PetController: NSObject, ObservableObject {
     }
 
     private func updateBubble(now: CFTimeInterval) {
-        guard let panel else { bubble.hide(); return }
+        guard !quietMode, !AgentTaskWindowController.shared.isVisible, let panel else { bubble.hide(); return }
         if now < balanceBubbleUntil, view?.isBeingDragged != true {
             bubble.move(near: panel.frame, on: panel.screen)
             return
@@ -433,6 +458,7 @@ final class PetController: NSObject, ObservableObject {
     // MARK: - Click to check the configured official DeepSeek account balance
 
     private func showBalanceBubble(value: String, detail: String) {
+        guard !quietMode, !AgentTaskWindowController.shared.isVisible else { return }
         guard let panel, isRunning else { return }
         balanceBubbleUntil = CACurrentMediaTime() + 8
         bubble.show(near: panel.frame, on: panel.screen, sentence: detail,
@@ -448,7 +474,7 @@ final class PetController: NSObject, ObservableObject {
     }
 
     private func showAPIBalance() {
-        guard balanceQueryTask == nil else { return }
+        guard !quietMode, !AgentTaskWindowController.shared.isVisible, balanceQueryTask == nil else { return }
         let endpoint = ChatStore.shared.endpoint
         do {
             _ = try DeepSeekBalance.balanceURL(for: endpoint)
@@ -469,7 +495,7 @@ final class PetController: NSObject, ObservableObject {
                     let snapshot = try await DeepSeekBalance.shared.fetch(endpoint: endpoint, key: key)
                     guard !Task.isCancelled, let self, self.isRunning,
                           ChatStore.shared.endpoint == endpoint,
-                          (try? ChatKeychain.read(endpoint: endpoint)) == key,
+                          ChatKeychain.isCurrent(key, endpoint: endpoint),
                           self.view?.isBeingDragged != true else { return }
                     let time = LocalizationManager.shared.mediumTime(snapshot.fetchedAt)
                     let availability = snapshot.isAvailable
@@ -479,7 +505,7 @@ final class PetController: NSObject, ObservableObject {
                                            detail: ChatText.pick("更新于 \(time) · \(availability)", "Updated \(time) · \(availability)"))
                 } catch {
                     guard !Task.isCancelled, let self, self.isRunning, ChatStore.shared.endpoint == endpoint,
-                          (try? ChatKeychain.read(endpoint: endpoint)) == key,
+                          ChatKeychain.isCurrent(key, endpoint: endpoint),
                           self.view?.isBeingDragged != true else { return }
                     self.showBalanceError(error)
                 }
@@ -497,7 +523,7 @@ final class PetController: NSObject, ObservableObject {
         case DeepSeekBalanceFailure.http(let code):
             detail = ChatText.pick("HTTP \(code)：请检查密钥或稍后重试。", "HTTP \(code): check your key or try later.")
         case let keychainError as NSError where keychainError.domain == NSOSStatusErrorDomain:
-            detail = ChatText.pick("无法读取密钥，请检查 macOS 钥匙串授权。", "Cannot read the key; check macOS Keychain access.")
+            detail = ChatText.pick("钥匙串未授权（\(keychainError.code)）。请到聊天连接设置点「授权读取密钥」。", "Keychain access failed (\(keychainError.code)). Authorize key access in chat connection settings.")
         default:
             detail = ChatText.pick("请检查网络和连接设置，稍后再试。", "Check your network and connection settings; try again later.")
         }
@@ -540,7 +566,7 @@ final class PetController: NSObject, ObservableObject {
         let elapsed = now - (lastWanderTick ?? now)
         lastWanderTick = now
         guard let panel, let view else { return }
-        guard wanderOn, isRunning, !isPerched, !view.isBeingDragged,
+        guard !quietMode, !AgentTaskWindowController.shared.isVisible, wanderOn, isRunning, !isPerched, !view.isBeingDragged,
               !isHoveringHer, view.secondsSinceTouch > 5 else {
             view.walking = false
             wanderTargetX = nil
@@ -604,6 +630,9 @@ final class PetController: NSObject, ObservableObject {
         let chatItem = NSMenuItem(title: ChatText.title, action: #selector(menuOpenChat), keyEquivalent: "")
         chatItem.target = self
         menu.addItem(chatItem)
+        let taskItem = NSMenuItem(title: ChatText.pick("派发工作任务…", "Assign a task…"), action: #selector(menuOpenTasks), keyEquivalent: "")
+        taskItem.target = self
+        menu.addItem(taskItem)
         menu.addItem(.separator())
 
         let skinItem = NSMenuItem(title: "\(locale[.skinMenu]): \(locale[PetSkin.skin(at: skinIndex).nameKey])",
@@ -635,6 +664,7 @@ final class PetController: NSObject, ObservableObject {
         menu.popUp(positioning: nil, at: NSPoint(x: local.x, y: local.y + 6), in: view)
     }
 
+    @objc private func menuOpenTasks() { AgentTaskWindowController.shared.open() }
     @objc private func menuOpenChat() { ChatWindowController.shared.open() }
     @objc private func menuNextSkin() { skinIndex = (skinIndex + 1) % PetSkin.skins.count }
     @objc private func menuNextFace() { cycleExpression() }
@@ -707,7 +737,7 @@ extension PetController: PetInteractionDelegate {
     func petViewWasTapped(_ view: PetView) {
         expression = view.expression
         scheduleNextRandomFace(from: CACurrentMediaTime())
-        if soundOn { DuckSound.shared.squeak() }
+        if soundOn && !quietMode { DuckSound.shared.squeak() }
         showAPIBalance()
     }
 

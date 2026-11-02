@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import LocalAuthentication
 
 struct ChatMessage: Codable, Identifiable {
     var id = UUID()
@@ -128,45 +129,101 @@ enum ChatContext {
     }
 }
 
-/// Only the credential lives in Keychain; neither preferences nor history contain it.
-enum ChatKeychain {
-    static func query(for endpoint: String) -> [String: Any] {
+/// Keep a credential in process memory after one successful authorization. Never persist the cache.
+@MainActor
+struct ChatKeychainOperations {
+    var read: ([String: Any], inout CFTypeRef?) -> OSStatus
+    var update: ([String: Any], Data) -> OSStatus
+    var add: ([String: Any]) -> OSStatus
+    var delete: ([String: Any]) -> OSStatus
+    static let live = Self(
+        read: { SecItemCopyMatching($0 as CFDictionary, &$1) },
+        update: { SecItemUpdate($0 as CFDictionary, [kSecValueData as String: $1] as CFDictionary) },
+        add: { SecItemAdd($0 as CFDictionary, nil) },
+        delete: { SecItemDelete($0 as CFDictionary) })
+}
+
+@MainActor
+final class ChatCredentialVault {
+    private var cache: [String: String] = [:]
+    private let operations: ChatKeychainOperations
+    init(operations: ChatKeychainOperations = .live) { self.operations = operations }
+
+    private func query(for endpoint: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
          kSecAttrService as String: "com.duhaoze.baifanyu.chat",
          kSecAttrAccount as String: endpoint]
     }
-    static func read(endpoint: String) throws -> String {
+
+    func read(endpoint: String, allowInteraction: Bool = false) throws -> String {
+        if let cached = cache[endpoint] { return cached }
         var query = query(for: endpoint)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
-        if status == errSecItemNotFound { return "" }
-        guard status == errSecSuccess, let data = result as? Data,
-              let text = String(data: data, encoding: .utf8) else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
+        if !allowInteraction {
+            let context = LAContext()
+            context.interactionNotAllowed = true
+            query[kSecUseAuthenticationContext as String] = context
         }
+        var result: CFTypeRef?
+        let status = operations.read(query, &result)
+        // Do not cache misses or failures: a later explicit authorization must be able to retry.
+        if status == errSecItemNotFound { return "" }
+        guard status == errSecSuccess else { throw Self.failure(status) }
+        guard let data = result as? Data, let text = String(data: data, encoding: .utf8) else {
+            throw Self.failure(errSecDecode)
+        }
+        cache[endpoint] = text
         return text
     }
-    static func save(_ value: String, endpoint: String) throws {
+
+    func save(_ value: String, endpoint: String) throws {
+        cache.removeValue(forKey: endpoint)
         let query = query(for: endpoint)
         if value.isEmpty {
-            let status = SecItemDelete(query as CFDictionary)
-            guard status == errSecSuccess || status == errSecItemNotFound else {
-                throw NSError(domain: NSOSStatusErrorDomain, code: Int(status))
-            }
+            let status = operations.delete(query)
+            guard status == errSecSuccess || status == errSecItemNotFound else { throw Self.failure(status) }
             return
         }
         let data = Data(value.utf8)
-        var status = SecItemUpdate(query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
+        var status = operations.update(query, data)
         if status == errSecItemNotFound {
             var item = query
             item[kSecValueData as String] = data
             item[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-            status = SecItemAdd(item as CFDictionary, nil)
+            status = operations.add(item)
         }
-        guard status == errSecSuccess else { throw NSError(domain: NSOSStatusErrorDomain, code: Int(status)) }
+        guard status == errSecSuccess else { throw Self.failure(status) }
+        cache[endpoint] = value
     }
+
+    func matches(_ key: String, endpoint: String) -> Bool { cache[endpoint] == key }
+    func clear() { cache.removeAll() }
+
+    static func failure(_ status: OSStatus) -> NSError {
+        let message: String
+        switch status {
+        case errSecInteractionNotAllowed, errSecAuthFailed, errSecUserCanceled:
+            message = ChatText.pick("钥匙串未授权或已锁定（\(status)）。请在聊天连接设置中点击「授权读取密钥」，按系统提示授权一次。",
+                                    "Keychain access is not authorized or is locked (\(status)). Open chat connection settings and choose Authorize key access.")
+        default:
+            let detail = SecCopyErrorMessageString(status, nil) as String? ?? "Keychain error"
+            message = ChatText.pick("钥匙串错误（\(status)）：", "Keychain error (\(status)): ") + detail
+        }
+        return NSError(domain: NSOSStatusErrorDomain, code: Int(status), userInfo: [NSLocalizedDescriptionKey: message])
+    }
+}
+
+/// Keys stay in Keychain; default reads never request authentication UI.
+@MainActor
+enum ChatKeychain {
+    private static let vault = ChatCredentialVault()
+    static func read(endpoint: String, allowInteraction: Bool = false) throws -> String {
+        try vault.read(endpoint: endpoint, allowInteraction: allowInteraction)
+    }
+    static func save(_ value: String, endpoint: String) throws { try vault.save(value, endpoint: endpoint) }
+    static func isCurrent(_ key: String, endpoint: String) -> Bool { vault.matches(key, endpoint: endpoint) }
+    static func clearCache() { vault.clear() }
 }
 
 @MainActor

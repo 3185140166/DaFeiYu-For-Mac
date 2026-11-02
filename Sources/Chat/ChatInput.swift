@@ -5,6 +5,8 @@ import AppKit
 struct ChatInput: NSViewRepresentable {
     @Binding var text: String
     var onSend: () -> Void
+    var transparentBackground = false
+    var onCompositionChange: ((Bool) -> Void)?
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
@@ -16,6 +18,7 @@ struct ChatInput: NSViewRepresentable {
         editor.isRichText = false
         editor.font = .systemFont(ofSize: NSFont.systemFontSize)
         editor.backgroundColor = .textBackgroundColor
+        editor.drawsBackground = !transparentBackground
         editor.textContainerInset = NSSize(width: 6, height: 7)
         editor.isVerticallyResizable = true
         editor.isHorizontallyResizable = false
@@ -23,6 +26,7 @@ struct ChatInput: NSViewRepresentable {
         editor.textContainer?.widthTracksTextView = true
         editor.delegate = context.coordinator
         editor.onSend = onSend
+        editor.onCompositionChange = onCompositionChange
         scroll.documentView = editor
         return scroll
     }
@@ -31,7 +35,9 @@ struct ChatInput: NSViewRepresentable {
         context.coordinator.parent = self
         guard let editor = scroll.documentView as? ChatTextView else { return }
         editor.onSend = onSend
-        if editor.string != text { editor.string = text }
+        editor.onCompositionChange = onCompositionChange
+        editor.drawsBackground = !transparentBackground
+        if !editor.hasMarkedText(), editor.string != text { editor.string = text }
     }
 
     final class Coordinator: NSObject, NSTextViewDelegate {
@@ -40,12 +46,27 @@ struct ChatInput: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let editor = notification.object as? NSTextView else { return }
             parent.text = editor.string
+            parent.onCompositionChange?(editor.hasMarkedText())
         }
     }
 }
 
 final class ChatTextView: NSTextView {
     var onSend: (() -> Void)?
+    var onCompositionChange: ((Bool) -> Void)?
+    override func setMarkedText(_ string: Any, selectedRange: NSRange, replacementRange: NSRange) {
+        super.setMarkedText(string, selectedRange: selectedRange, replacementRange: replacementRange)
+        onCompositionChange?(hasMarkedText())
+    }
+    override func unmarkText() {
+        super.unmarkText()
+        onCompositionChange?(hasMarkedText())
+    }
+    override func insertText(_ string: Any, replacementRange: NSRange) {
+        super.insertText(string, replacementRange: replacementRange)
+        onCompositionChange?(hasMarkedText())
+    }
+    override var needsPanelToBecomeKey: Bool { true }
     override func keyDown(with event: NSEvent) {
         let isReturn = event.keyCode == 36 || event.keyCode == 76
         if isReturn && !hasMarkedText() {

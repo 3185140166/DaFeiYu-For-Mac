@@ -12,6 +12,9 @@ struct BaifanYuApp: App {
         // reliably delivered in a MenuBarExtra-only app), so she is started here.
         // PetController.start() is idempotent.
         PetController.shared.start()
+        if CommandLine.arguments.contains("--tasks") {
+            DispatchQueue.main.async { AgentTaskWindowController.shared.open() }
+        }
     }
 
     var body: some Scene {
@@ -23,6 +26,12 @@ struct BaifanYuApp: App {
             MenuBarIconLabel()
         }
         .menuBarExtraStyle(.menu)
+        .commands {
+            CommandMenu(ChatText.pick("任务", "Tasks")) {
+                Button(ChatText.pick("派发工作任务…", "Assign a task…")) { AgentTaskWindowController.shared.open() }
+                    .keyboardShortcut("t", modifiers: [.command, .shift])
+            }
+        }
     }
 }
 
@@ -50,6 +59,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             self.showFirstLaunchDialogsIfNeeded()
         }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        AgentTaskStore.shared.cancelRuntimeInstallation()
+        AgentTaskStore.shared.stop()
     }
 
     /// Nothing to keep alive: she is an accessory app and quits only on request.

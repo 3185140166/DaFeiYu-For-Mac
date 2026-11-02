@@ -31,6 +31,9 @@
 - API Key 使用 macOS 钥匙串，聊天记录存放在应用支持目录，不包含在代码仓库。
 - 点击桌宠显示 DeepSeek 官方 API 账户余额，缓存 60 秒；保留换表情和音效。
 - 修复短距离拖离屏幕边缘后不恢复全身、右侧扒边点击检测及旋转裁剪比例。
+- 安静模式：菜单栏或设置中启用，暂停走动、音效和气泡；关闭后恢复原有偏好。菜单快捷键 ⌘⇧M。
+- 聊天上翻阅读时暂停自动跟随，新内容到达后可点击「查看最新回复」返回底部。
+- 动画控制循环按悬浮 30 Hz / 扒边 20 Hz 运行；不可见、锁屏和屏幕休眠时继续暂停。
 
 构建运行：
 
@@ -75,7 +78,7 @@ She floats on your desktop as a tiny borderless window. Drag her anywhere; drop 
 - **Stops rendering when you cannot see her** (occluded, screens asleep, session locked)
 - **Trilingual UI**: English / 简体中文 / 繁體中文 (follows the system or a manual override)
 - **Offline pet, optional AI chat** — pet interactions work offline; chat sends summaries and recent turns to your configured provider when you send; long chats make an extra summarization request
-- **MIT licensed code**, no third-party dependencies
+- **MIT licensed Swift code**, no dependencies for the pet/chat; optional Agent runtime uses Python packages
 
 ---
 
@@ -95,7 +98,7 @@ She floats on your desktop as a tiny borderless window. Drag her anywhere; drop 
 - **看不见她的时候真的停止渲染**（被遮挡、屏幕休眠、会话锁定时）
 - **三语界面**：English / 简体中文 / 繁體中文（跟随系统或手动切换）
 - **离线桌宠，可选 AI 聊天**：桌宠互动离线运行；发送聊天消息时，摘要及近期原文会交给配置的服务商，长对话会额外请求模型生成摘要
-- **MIT 开源代码**，无第三方依赖
+- **MIT 开源 Swift 代码**，桌宠和聊天无第三方依赖；可选 Agent 后台使用 Python 依赖
 
 ---
 
@@ -311,3 +314,55 @@ v7 使用同一张完整上半身、两条始终保留身份的腿，以及连�
 ![连续分层步态预览](docs/hoodie-walk-preview.gif)
 
 素材及衍生图标保留 CC BY-NC-SA 4.0，署名 CrossPet / lokicorvus and CrossPet contributors、上善无形 / ZipZipPipe。源图与提示词位于 `artwork-src/claude-hoodie/motion-v7/`、`motion-v8/` 、`motion-v12/` 和 `motion-v13/`；v3–v6 保留为历史来源，不再用于当前走路循环。
+
+
+## Agent tasks / 派发工作任务
+
+新工作任务使用 **DeepSeek Harness 官方后台**。Swift 桌宠负责小气泡，Harness 的 `sdk` profile 负责 Agent 循环、原生文件/终端工具及会话持久化。普通聊天仍独立运行。此前 Deep Agents 的任务记录和待确认检查点仍保留，按任务保存的引擎标记走兼容入口，不会直接转换检查点格式。
+
+1. 从聊天工具栏、菜单栏或桌宠右键菜单选择「派发工作任务…」。应用激活时也可按 ⌘⇧T。
+2. 气泡自动沿用聊天中的 **DeepSeek 官方连接、模型和钥匙串密钥**，不另设模型配置。官方 Chat Completions 地址在后台映射到同账户的 Messages 接口。当前工作桥接支持 `api.deepseek.com` 和本机 Messages 测试服务；其他厂商的兼容接口仍可用于普通聊天，需要额外的 Harness 模型适配器才能用于工作。
+3. 选择文件夹、填写需求并回车或点击发送箭头。输入气泡 300×176 pt，结果随内容伸缩，长内容才滚动；显示公开文字、工具进度和回复，隐藏模型内部推理。收起不停止任务；退出应用或点击停止会停止工作，已完成的改动不会回滚。
+4. 文件工具检查所选目录边界，阻止直接越界、目录外符号链接及 `.git`、`.env*`、`.pem`、`.key`。写入、编辑、终端和其他有副作用的工具通过自带审批插件逐次确认，只允许本次操作。终端仍遵循 Harness 的原生沙箱策略；你批准的命令以当前用户权限执行，请检查具体参数。
+5. 时钟图标查看历史。等待确认时退出，点击「继续」会让 Harness 恢复会话并重新检查状态，新的实际操作仍需批准，不自动复用上次许可。执行中意外退出不会自动重放。当前一次执行一个任务。
+
+首次使用时在气泡中点击 **「启用工作能力」**。大肥鱼的原生安装器会下载配套的独立 Harness 可执行包和可迁移 CPython，不依赖系统 Python、Node.js、npm、pip 或 Harness 桌面版。下载和校验完成前不会启用半成品；准备过程中显示阶段、可取消，失败后可重试，已校验的下载会复用。
+
+发布包锁定 `deepseek-harness-runtime-bin==0.2.1rc2` 和 `CPython 3.12.16+20261026`，分别提供 Apple Silicon / Intel 下载及 SHA-256。Harness 来源为官方 PyPI 发布包（优先从清华 PyPI 镜像获取相同内容，失败后尝试官方源），Python 来源为 Astral 的 python-build-standalone GitHub 发布；只有校验通过的归档才解压和启动。资源留在应用支持目录，原有系统环境和其他应用不作修改。当前 Apple Silicon 已完成实际下载、无外部环境启动和工作链路验证；Intel 配置已列出，但尚未在 Intel 实机验证。
+
+每个版本使用独立目录并记录完成标记，安装后再验证 Python 的 SSL/标准库和 Harness 启动。更新不会覆盖旧版本目录，失败或取消不会发布半成品。发现当前版本损坏后，可重新启用，从已校验缓存修复；两个应用实例不能同时安装。缓存归档会保留以便离线重试解压，暂不自动清理旧版本。首次下载约 110–120 MB，展开及缓存共占约 500 MB，具体依架构而异。
+
+新任务优先使用已准备的配套后台。为了保留开发环境兼容性，没有配套后台时仍可复用原 `.venv` 和已安装的 Harness 应用/CLI；普通用户无需走此路径。`AgentRuntime/setup.sh` 现仅打开应用并提示点击原生启用按钮，不再要求用户在终端安装依赖。
+
+任务和工具结果会交给所配置的 DeepSeek 服务，可能产生多次模型请求及 API 费用。真实 API Key 只通过 stdin 进入桥接进程的内存；本地临时代理向同一服务的 Messages API 添加认证，不接受重定向，不向 Harness 子进程的环境、命令行或配置写入真实密钥。Harness 收到的只是每次启动随机生成的本地代理令牌。专用 profile 禁用遥测上报与插件安装工具，不读取用户已有的 Harness home。
+
+- 任务记录：`~/Library/Application Support/BaifanYu/tasks.json`。
+- Harness 独立会话：`~/Library/Application Support/BaifanYu/AgentTasks/<任务 ID>/harness/`。
+- 配套后台：`~/Library/Application Support/BaifanYu/AgentRuntime/managed/<锁定版本>-<架构>/`，包含独立 Python、Harness 和原生辅助程序。
+- 校验后的下载缓存：`~/Library/Application Support/BaifanYu/AgentRuntime/downloads/`。
+- 旧开发环境 `.venv` 和 npm CLI 仍可作为兼容回退，不是新用户安装要求。
+- 旧 Deep Agents 检查点仍在原任务的 `checkpoints.sqlite`；兼容代码在 `legacy_worker.py`，依赖见 `requirements-legacy.txt`，不会为新任务加载。
+
+后台通过官方 JSON-RPC API驱动完整 `sdk` profile，审批使用公开的 `tools/pre-execute` 与 `approval/request` 扩展点。原生浏览器、Office、第三方插件等能力并不因此自动完成接入；当前验证覆盖项目文件、终端、审批、取消、流式文字和会话恢复。工作总时限 30 分钟；后端启动限时 30 秒，模型连接空闲超时 120 秒。
+
+开发验证均为本地模拟接口，不使用真实密钥或模型额度：
+
+```bash
+bash Tests/run_runtime_installer_tests.sh # 原生安装器校验、取消及安装锁
+python3 Tests/run_harness_tests.py       # 真实官方 Harness + 本地 Messages 模拟服务
+python3 Tests/run_agent_swift_tests.py   # Swift → 桥接 → Harness 的完整链路
+python3 Tests/run_agent_tests.py         # 旧 Deep Agents 检查点兼容
+```
+
+官方文档：[Harness SDK](https://github.com/deepseek-ai/deepseek-harness/blob/master/python/sdk/README.md)、[SDK stdio profile](https://github.com/deepseek-ai/deepseek-harness/blob/master/packages/bundle/sdk-app/README.md)。配套后台验证版本为 Harness runtime 0.2.1rc2；桌面版 CLI 0.2.1-rc.3 仍可兼容，协议仍在快速迭代。
+
+
+### Keychain authorization / 钥匙串授权
+
+普通聊天、Agent 和余额查询默认静默读取钥匙串，不会为了读取密钥主动弹出认证窗口。首次未获授权或钥匙串锁定时，打开「和大肥鱼聊天 → 连接设置」，点击「授权读取密钥」，自行完成 macOS 验证；系统提供选项时可选择「始终允许」。也可选择「重新输入密钥」以替换已有密钥，保存操作仍可能需要系统授权。
+
+一次成功读取或保存后，各功能复用仅驻留内存、按接口隔离的缓存，锁定/切换用户会话后清除。密钥修改或删除会使旧缓存失效，缓存不写入磁盘。外部通过钥匙串访问修改密钥后，需重启应用以重新读取。
+
+开发默认采用 ad-hoc 签名，指定要求包含当前代码哈希；更新构建后旧授权可能不再匹配。若已有稳定的签名证书，可使用 `CODE_SIGN_IDENTITY="证书名称或 SHA-1" bash build.sh` 保持签名身份；不要通过关闭钥匙串保护或放宽到所有应用来消除提示。
+
+验证：`bash Tests/run_credential_tests.sh` 使用模拟钥匙串验证缓存、静默读取、授权重试及缓存失效，不访问真实密钥。

@@ -218,6 +218,10 @@ struct SettingsView: View {
     private var behaviourBox: some View {
         GroupBox {
             VStack(alignment: .leading, spacing: 12) {
+                toggleRow(title: ChatText.pick("安静模式", "Quiet mode"),
+                          hint: ChatText.pick("暂停走动、音效和气泡，保留轻微待机动画。关闭后恢复原有偏好。", "Pause wandering, sounds and bubbles while keeping idle animation. Your preferences resume when disabled."),
+                          isOn: $pet.quietMode)
+                Divider()
                 toggleRow(title: locale[.wanderTitle], hint: locale[.wanderHint], isOn: $pet.wanderOn)
                 Divider()
                 toggleRow(title: locale[.randomFaceTitle], hint: locale[.randomFaceHint], isOn: $pet.randomFace)

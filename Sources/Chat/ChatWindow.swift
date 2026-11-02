@@ -33,6 +33,8 @@ final class ChatWindowController: NSObject, NSWindowDelegate {
 struct ChatView: View {
     @EnvironmentObject private var locale: LocalizationManager
     @ObservedObject private var chat = ChatStore.shared
+    @State private var followsReplies = true
+    @State private var hasNewReply = false
     @State private var draft = ""
     @State private var configuring = false
     @State private var deleting = false
@@ -56,6 +58,8 @@ struct ChatView: View {
                         .font(.caption).foregroundStyle(.secondary)
                 }
                 Spacer()
+                Button { AgentTaskWindowController.shared.open() } label: { Image(systemName: "checklist") }
+                    .help(ChatText.pick("派发工作任务", "Assign a task"))
                 Button { configuring = true } label: { Image(systemName: "gearshape") }
                     .help(ChatText.pick("连接设置", "Connection settings"))
                     .disabled(chat.isSending)
@@ -106,10 +110,32 @@ struct ChatView: View {
                         }
                         Color.clear.frame(height: 1).id("bottom")
                     }.padding()
+                        .background(ChatScrollTracking(followsReplies: $followsReplies))
                 }
-                .onChange(of: chat.messages.last?.content) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
-                .onChange(of: chat.messages.count) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
-                .onChange(of: chat.activeID) { _, _ in proxy.scrollTo("bottom", anchor: .bottom) }
+                .overlay(alignment: .bottomTrailing) {
+                    if !followsReplies && hasNewReply {
+                        Button(ChatText.pick("查看最新回复 ↓", "Latest reply ↓")) {
+                            followsReplies = true
+                            hasNewReply = false
+                            proxy.scrollTo("bottom", anchor: .bottom)
+                        }.buttonStyle(.borderedProminent).padding()
+                    }
+                }
+                .onChange(of: chat.messages.last?.content) { _, _ in
+                    if followsReplies { proxy.scrollTo("bottom", anchor: .bottom) }
+                    else { hasNewReply = true }
+                }
+                .onChange(of: chat.messages.count) { _, _ in
+                    if followsReplies { proxy.scrollTo("bottom", anchor: .bottom) }
+                }
+                .onChange(of: chat.activeID) { _, _ in
+                    followsReplies = true
+                    hasNewReply = false
+                    proxy.scrollTo("bottom", anchor: .bottom)
+                }
+                .onChange(of: followsReplies) { _, follows in
+                    if follows { hasNewReply = false }
+                }
             }
             if chat.isCompacting {
                 HStack {
@@ -195,6 +221,7 @@ struct ChatView: View {
         return Text(ChatText.pick("\(label)：输入 \(input) / 输出 \(output) / 缓存命中 \(cache) tokens", "\(label): input \(input) / output \(output) / cache hit \(cache) tokens"))
     }
     private func send() {
+        if !chat.isSending { followsReplies = true; hasNewReply = false }
         chat.send(draft)
         if chat.isSending { draft = "" }
     }
@@ -220,6 +247,18 @@ struct ChatConnectionView: View {
                 .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             TextField(ChatText.pick("模型名称（按服务商提供的填写）", "Model ID supplied by your provider"), text: $model)
             SecureField("API Key", text: $key)
+            if !credentialLoaded {
+                HStack {
+                    Button(ChatText.pick("授权读取密钥", "Authorize key access")) { loadKey(allowInteraction: true) }
+                    Button(ChatText.pick("重新输入密钥", "Enter a replacement key")) {
+                        key = ""
+                        credentialLoaded = true
+                        error = nil
+                    }
+                }
+                Text(ChatText.pick("系统如弹出钥匙串提示，可选择「始终允许」。成功读取后，本次运行的聊天、任务和余额查询会共用密钥。", "If macOS asks, choose Always Allow. After authorization, chat, tasks and balance queries reuse the key during this run."))
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             Text(ChatText.pick("密钥保存在 macOS 钥匙串，按接口地址分别保存。本机免密服务可留空；清空后保存可删除对应密钥。", "Keys are stored in macOS Keychain separately for each endpoint. Leave blank for local services without authentication; saving an empty key deletes that endpoint's key."))
                 .font(.caption).foregroundStyle(.secondary)
             Toggle(ChatText.pick("请求服务商返回 token 用量", "Request token usage from provider"), isOn: $requestUsage)
@@ -243,13 +282,14 @@ struct ChatConnectionView: View {
         .padding(24).frame(width: 460)
         .onAppear { loadKey() }
     }
-    private func loadKey() {
+    private func loadKey(allowInteraction: Bool = false) {
         do {
             let normalized = endpoint.trimmingCharacters(in: .whitespacesAndNewlines)
-            key = try ChatKeychain.read(endpoint: normalized)
+            key = try ChatKeychain.read(endpoint: normalized, allowInteraction: allowInteraction)
             credentialLoaded = true
             error = nil
         } catch {
+            key = ""
             credentialLoaded = false
             self.error = error.localizedDescription
         }
@@ -310,6 +350,55 @@ struct ChatHistoryView: View {
                 if let conversation = pendingDelete { chat.deleteConversation(conversation.id) }
                 pendingDelete = nil
             }
+        }
+    }
+}
+
+/// Observe user scrolling only: growing streamed text must not disable following.
+private struct ChatScrollTracking: NSViewRepresentable {
+    @Binding var followsReplies: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator(followsReplies: $followsReplies) }
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        context.coordinator.install(on: view)
+        return view
+    }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) { coordinator.removeMonitor() }
+
+    @MainActor
+    final class Coordinator {
+        let followsReplies: Binding<Bool>
+        private var monitor: Any?
+        init(followsReplies: Binding<Bool>) { self.followsReplies = followsReplies }
+        func install(on view: NSView) {
+            monitor = NSEvent.addLocalMonitorForEvents(matching: [.scrollWheel, .keyDown]) { [weak self, weak view] event in
+                guard let view, let scroll = view.enclosingScrollView,
+                      event.window === scroll.window else { return event }
+                if event.type == .scrollWheel {
+                    let point = scroll.convert(event.locationInWindow, from: nil)
+                    guard scroll.bounds.contains(point) else { return event }
+                    // Pause immediately, before a streamed chunk can scroll over the gesture.
+                    if event.scrollingDeltaY > 0 { self?.followsReplies.wrappedValue = false }
+                } else {
+                    guard [UInt16(116), 121, 125, 126, 115, 119].contains(event.keyCode),
+                          let responder = scroll.window?.firstResponder as? NSView,
+                          responder === scroll || responder.isDescendant(of: scroll) else { return event }
+                }
+                DispatchQueue.main.async { [weak self, weak scroll] in
+                    guard let scroll, let document = scroll.documentView else { return }
+                    let visible = scroll.documentVisibleRect
+                    let distance = document.isFlipped
+                        ? document.bounds.maxY - visible.maxY : visible.minY - document.bounds.minY
+                    self?.followsReplies.wrappedValue = distance <= 60
+                }
+                return event
+            }
+        }
+        func removeMonitor() {
+            if let monitor { NSEvent.removeMonitor(monitor) }
+            monitor = nil
         }
     }
 }

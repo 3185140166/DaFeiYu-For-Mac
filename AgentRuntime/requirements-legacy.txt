@@ -1,0 +1,9 @@
+# Tested framework combination. Keep these in sync with the mock integration tests.
+deepagents==0.4.12
+langchain==1.4.7
+langchain-core==1.7.3
+langchain-openai==1.7.3
+langchain-anthropic==1.7.7
+langchain-google-genai==4.4.2
+langgraph==1.2.18
+langgraph-checkpoint-sqlite==3.1.2
